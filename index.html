@@ -85,7 +85,11 @@
             right: 25px;
             z-index: 100;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+            transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
         }
+
+        /* Classe para esconder o Zoom */
+        .zoom-hidden { transform: translateY(-200%); opacity: 0; pointer-events: none; }
 
         .btn-zoom {
             width: 32px;
@@ -268,7 +272,7 @@
 </head>
 <body class="pb-32">
 
-    <div class="zoom-controls">
+    <div id="zoomControls" class="zoom-controls">
         <button class="btn-zoom" onclick="window.zoom(0.1)">+</button>
         <span id="zoomValDisplay">100%</span>
         <button class="btn-zoom" onclick="window.zoom(-0.1)">-</button>
@@ -465,25 +469,38 @@
 
         let lastScrollTop = 0;
         const mainHeader = document.getElementById('mainHeader');
+        const zoomControls = document.getElementById('zoomControls');
         
+        // LÓGICA DE ROLAGEM (Header + Zoom)
         window.addEventListener('scroll', () => {
             let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
             if (scrollTop > lastScrollTop && scrollTop > 150) {
                 mainHeader.classList.add('header-hidden');
+                zoomControls.classList.add('zoom-hidden'); // ESCONDE ZOOM AO ROLAR
             } else {
                 mainHeader.classList.remove('header-hidden');
+                zoomControls.classList.remove('zoom-hidden'); // MOSTRA ZOOM AO VOLTAR
             }
             lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
         }, { passive: true });
 
         // ATALHOS DE TECLADO
         window.addEventListener('keydown', (e) => {
+            const inputPesquisa = document.getElementById('inputPesquisa');
+            
             if (e.key === "Escape") {
-                fecharModal();
-                fecharModalGenerico();
-                fecharModalDelete();
-                fecharModalDuplicado();
-                if (document.activeElement) document.activeElement.blur();
+                const algumModalAberto = ['modal', 'modal-generico', 'modal-delete', 'modal-duplicado'].some(id => document.getElementById(id).style.display === 'flex');
+                
+                if (algumModalAberto) {
+                    fecharModal();
+                    fecharModalGenerico();
+                    fecharModalDelete();
+                    fecharModalDuplicado();
+                    if (document.activeElement) document.activeElement.blur();
+                } else {
+                    limparBusca();
+                    inputPesquisa.focus();
+                }
                 return;
             }
 
@@ -497,11 +514,13 @@
             const algunModalAberto = modais.some(id => document.getElementById(id).style.display === 'flex');
             if (algunModalAberto) return;
 
-            const inputPesquisa = document.getElementById('inputPesquisa');
             if (e.ctrlKey || e.altKey || e.metaKey || document.activeElement === inputPesquisa) return;
 
             if (e.key.length === 1) {
                 mainHeader.classList.remove('header-hidden');
+                zoomControls.classList.remove('zoom-hidden');
+                filtroLetra = "";
+                inputPesquisa.value = "";
                 inputPesquisa.focus();
             }
         });
@@ -549,7 +568,8 @@
 
         window.limparBusca = () => {
             document.getElementById('inputPesquisa').value = "";
-            window.setFiltro('');
+            filtroLetra = "";
+            window.resetarPaginaERenderizar();
         };
 
         window.resetarPaginaERenderizar = () => { paginaAtual = 1; renderizar(); };
@@ -565,6 +585,11 @@
             document.getElementById('btnLimpar').style.display = temFiltro ? 'block' : 'none';
             document.getElementById('btn-desfiltrar-flutuante').style.display = temFiltro ? 'block' : 'none';
             
+            document.querySelectorAll('.btn-l').forEach(b => {
+                const isSelected = (filtroLetra && b.innerText === filtroLetra) || (!filtroLetra && !busca && b.innerText === '#');
+                b.className = `btn-l transition-all p-2 rounded w-8 font-black ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-600'}`;
+            });
+
             let termoAtivo = busca.length > 0 ? busca : filtroLetra.toLowerCase();
             const fonteDados = contextoAtual === 'veiculos' ? dadosOriginais : dadosGenericos;
 
@@ -771,9 +796,9 @@
         };
 
         window.setFiltro = (l) => {
-            document.getElementById('inputPesquisa').value = l;
-            filtroLetra = l; resetarPaginaERenderizar();
-            document.querySelectorAll('.btn-l').forEach(b => b.className = `btn-l transition-all p-2 rounded w-8 font-black ${b.innerText === (l||'#') ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-600'}`);
+            document.getElementById('inputPesquisa').value = "";
+            filtroLetra = l; 
+            resetarPaginaERenderizar();
         };
 
         window.editarItem = (id) => abrirModal(id);
@@ -783,7 +808,11 @@
         bar.innerHTML = `<button onclick="window.setFiltro('')" class="btn-l bg-blue-600 text-white p-2 rounded w-8 font-black">#</button>` + 
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => `<button onclick="window.setFiltro('${l}')" class="btn-l bg-slate-900 text-slate-600 p-2 rounded w-8 font-black">${l}</button>`).join("");
 
-        document.getElementById('inputPesquisa').addEventListener('input', window.resetarPaginaERenderizar);
+        document.getElementById('inputPesquisa').addEventListener('input', () => {
+            if(document.getElementById('inputPesquisa').value.length > 0) filtroLetra = "";
+            window.resetarPaginaERenderizar();
+        });
+        
         login();
     </script>
 </body>
