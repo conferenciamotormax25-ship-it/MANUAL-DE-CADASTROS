@@ -5,29 +5,87 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manual de Cadastro v3.8 - Multi-Desc</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #020617;
-            --card: rgba(30, 41, 59, 0.7);
-            --border: rgba(51, 65, 85, 0.5);
+            --bg: #030712;
+            --card: rgba(15, 23, 42, 0.55);
+            --border: rgba(56, 189, 248, 0.18);
             --text: #f8fafc;
             --accent: #3b82f6;
+            --accent2: #22d3ee;
+            --accent3: #a78bfa;
             --success: #10b981; 
             --warning: #f59e0b;
             --danger: #ef4444;
             --card-zoom: 1;
+            --mx: 50%;
+            --my: 50%;
+            --font-display: 'Orbitron', 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', 'ui-monospace', monospace;
         }
+
+        * { box-sizing: border-box; }
 
         body { 
             font-family: 'Inter', sans-serif; 
             background-color: var(--bg);
-            background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #020617 70%);
+            background-image:
+                radial-gradient(600px circle at var(--mx) var(--my), rgba(34, 211, 238, 0.06), transparent 60%),
+                radial-gradient(circle at 15% 0%, rgba(99, 102, 241, 0.16) 0%, transparent 45%),
+                radial-gradient(circle at 85% 15%, rgba(34, 211, 238, 0.10) 0%, transparent 40%),
+                linear-gradient(#030712, #030712);
             background-attachment: fixed;
             color: var(--text);
             -webkit-font-smoothing: antialiased;
             scroll-behavior: smooth;
+            position: relative;
+            min-height: 100vh;
+            overflow-x: hidden;
         }
+
+        /* GRID HUD DE FUNDO */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(56, 189, 248, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(56, 189, 248, 0.05) 1px, transparent 1px);
+            background-size: 42px 42px;
+            mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 40%, transparent 90%);
+            animation: gridDrift 40s linear infinite;
+        }
+
+        /* SCANLINE VARRENDO A TELA */
+        body::after {
+            content: '';
+            position: fixed;
+            left: 0; right: 0;
+            height: 140px;
+            top: -140px;
+            z-index: 1;
+            pointer-events: none;
+            background: linear-gradient(to bottom, transparent, rgba(34, 211, 238, 0.05), transparent);
+            animation: scanSweep 9s ease-in-out infinite;
+        }
+
+        @keyframes gridDrift {
+            0% { background-position: 0 0, 0 0; }
+            100% { background-position: 42px 42px, 42px 42px; }
+        }
+
+        @keyframes scanSweep {
+            0% { top: -140px; }
+            50% { top: 100vh; }
+            100% { top: -140px; }
+        }
+
+        #app { position: relative; z-index: 2; }
+
+        ::selection { background: rgba(34, 211, 238, 0.35); color: #fff; }
 
         /* BARRA DE ROLAGEM FORMULÁRIOS */
         .form-scroll::-webkit-scrollbar {
@@ -118,20 +176,88 @@
 
         .manual2-card {
             background: var(--card);
-            backdrop-filter: blur(12px);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid var(--border);
-            border-radius: 20px;
+            border-radius: 16px;
             padding: 20px;
             display: flex;
             flex-direction: column;
             gap: 14px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.35s, box-shadow 0.35s;
             position: relative;
             overflow: hidden;
             height: 100%;
+            transform-style: preserve-3d;
         }
 
-        .manual2-title { font-size: 0.95rem; font-weight: 900; color: #fff; text-transform: uppercase; line-height: 1.3; letter-spacing: -0.01em; word-break: break-word; border-left: 4px solid #3b82f6; padding-left: 12px; }
+        /* borda holográfica animada que aparece no hover */
+        .manual2-card::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            padding: 1px;
+            border-radius: 16px;
+            background: conic-gradient(from var(--card-angle, 0deg), transparent 0%, var(--accent2) 15%, transparent 30%);
+            -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            opacity: 0;
+            transition: opacity 0.35s;
+            animation: rotateBorder 4s linear infinite;
+            pointer-events: none;
+        }
+
+        .manual2-card:hover::before { opacity: 1; }
+
+        @keyframes rotateBorder {
+            to { --card-angle: 360deg; }
+        }
+        @property --card-angle {
+            syntax: '<angle>';
+            initial-value: 0deg;
+            inherits: false;
+        }
+
+        /* corner brackets estilo mira/HUD */
+        .manual2-card::after {
+            content: '';
+            position: absolute;
+            top: 8px; left: 8px; right: 8px; bottom: 8px;
+            border-radius: 10px;
+            box-shadow:
+                inset 12px 0 0 -11px var(--accent2),
+                inset 0 12px 0 -11px var(--accent2),
+                inset -12px 0 0 -11px var(--accent2),
+                inset 0 -12px 0 -11px var(--accent2);
+            -webkit-mask:
+                linear-gradient(#000 0 0) padding-box,
+                radial-gradient(circle at 0 0, transparent 12px, #000 13px) top left / 24px 24px no-repeat,
+                radial-gradient(circle at 100% 0, transparent 12px, #000 13px) top right / 24px 24px no-repeat,
+                radial-gradient(circle at 0 100%, transparent 12px, #000 13px) bottom left / 24px 24px no-repeat,
+                radial-gradient(circle at 100% 100%, transparent 12px, #000 13px) bottom right / 24px 24px no-repeat;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .manual2-card:hover::after { opacity: 0.35; }
+
+        .manual2-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(34, 211, 238, 0.5);
+            box-shadow: 0 20px 40px -18px rgba(34, 211, 238, 0.35), 0 0 0 1px rgba(34, 211, 238, 0.08);
+        }
+
+        .manual2-card.card-saved {
+            animation: savedPulse 1.4s ease-out;
+        }
+        @keyframes savedPulse {
+            0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.55); }
+            70% { box-shadow: 0 0 0 18px rgba(16, 185, 129, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        .manual2-title { font-family: var(--font-display); font-size: 0.88rem; font-weight: 800; color: #fff; text-transform: uppercase; line-height: 1.3; letter-spacing: 0.01em; word-break: break-word; border-left: 4px solid var(--accent2); padding-left: 12px; text-shadow: 0 0 18px rgba(34, 211, 238, 0.25); }
 
         .desc-container { display: flex; flex-direction: column; gap: 6px; }
         
@@ -141,7 +267,7 @@
             border-radius: 10px; 
             padding: 12px; 
             color: #10b981; 
-            font-family: 'ui-monospace', monospace; 
+            font-family: var(--font-mono); 
             font-size: 0.78rem; 
             font-weight: 600; 
             line-height: 1.4; 
@@ -152,9 +278,21 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            overflow: hidden;
         }
-        .box-main:hover { background: rgba(16, 185, 129, 0.1); border-color: #10b981; }
-        .box-main::after { content: 'COPIAR'; font-size: 8px; font-weight: 900; opacity: 0; transition: 0.2s; background: #10b981; color: #000; padding: 2px 6px; border-radius: 4px; }
+        .box-main::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(100deg, transparent 40%, rgba(16, 185, 129, 0.18) 50%, transparent 60%);
+            transform: translateX(-120%);
+            transition: transform 0.6s ease;
+            pointer-events: none;
+        }
+        .box-main:hover::before { transform: translateX(120%); }
+        .box-main:hover { background: rgba(16, 185, 129, 0.1); border-color: #10b981; transform: translateX(2px); box-shadow: 0 0 16px -4px rgba(16, 185, 129, 0.4); }
+        .box-main:active { transform: scale(0.98); }
+        .box-main::after { content: 'COPIAR'; font-size: 8px; font-weight: 900; opacity: 0; transition: 0.2s; background: #10b981; color: #000; padding: 2px 6px; border-radius: 4px; z-index: 1; }
         .box-main:hover::after { opacity: 1; }
 
         .box-sub { background: rgba(30, 41, 59, 0.4); border-left: 3px solid #ef4444; padding: 8px 12px; border-radius: 4px 10px 10px 4px; color: #ef4444; font-size: 0.75rem; font-style: italic; font-weight: 700; }
@@ -188,9 +326,25 @@
         }
 
         .card-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: auto; }
-        .action-btn { height: 36px; border-radius: 8px; font-weight: 800; font-size: 0.6rem; text-transform: uppercase; display: flex; align-items: center; justify-content: center; transition: all 0.2s; cursor: pointer; }
+        .action-btn { height: 36px; border-radius: 8px; font-weight: 800; font-size: 0.6rem; text-transform: uppercase; display: flex; align-items: center; justify-content: center; transition: all 0.2s cubic-bezier(0.4,0,0.2,1); cursor: pointer; position: relative; overflow: hidden; letter-spacing: 0.04em; }
         .btn-edit-main { background: #f59e0b; color: #fff; }
+        .btn-edit-main:hover { background: #fbbf24; box-shadow: 0 6px 18px -4px rgba(245, 158, 11, 0.6); transform: translateY(-2px); }
         .btn-delete-main { background: #ef4444; color: #fff; }
+        .btn-delete-main:hover { background: #f87171; box-shadow: 0 6px 18px -4px rgba(239, 68, 68, 0.6); transform: translateY(-2px); }
+        .action-btn:active { transform: scale(0.95); }
+
+        /* efeito ripple genérico (acionado via JS em qualquer clique de botão) */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.55);
+            transform: scale(0);
+            animation: rippleAnim 0.6s ease-out forwards;
+            pointer-events: none;
+        }
+        @keyframes rippleAnim {
+            to { transform: scale(3); opacity: 0; }
+        }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -204,10 +358,22 @@
         #modal-success-overlay, #modal-success-overlay-gen { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; border-radius: 2rem; }
 
         .paginacao-container { display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 40px; margin-bottom: 20px; }
-        .btn-paginacao { background: #1e293b; border: 1px solid var(--border); color: white; padding: 10px 20px; border-radius: 12px; font-weight: 800; font-size: 10px; text-transform: uppercase; cursor: pointer; }
+        .btn-paginacao { background: #1e293b; border: 1px solid var(--border); color: white; padding: 10px 20px; border-radius: 12px; font-weight: 800; font-size: 10px; text-transform: uppercase; cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden; }
+        .btn-paginacao:not(:disabled):hover { border-color: var(--accent2); box-shadow: 0 0 16px -4px rgba(34, 211, 238, 0.5); transform: translateY(-2px); }
         .btn-paginacao:disabled { opacity: 0.3; cursor: not-allowed; }
-        .tab-btn { border-bottom: 3px solid transparent; transition: all 0.3s; cursor: pointer; }
-        .tab-btn.active { border-color: #3b82f6; color: #3b82f6; }
+        .tab-btn { font-family: var(--font-display); border-bottom: 3px solid transparent; transition: all 0.3s; cursor: pointer; position: relative; }
+        .tab-btn::after {
+            content: '';
+            position: absolute;
+            left: 50%; right: 50%; bottom: -3px;
+            height: 3px;
+            background: var(--accent2);
+            box-shadow: 0 0 12px 1px var(--accent2);
+            transition: left 0.3s cubic-bezier(0.4,0,0.2,1), right 0.3s cubic-bezier(0.4,0,0.2,1);
+        }
+        .tab-btn:hover::after { left: 0; right: 0; }
+        .tab-btn.active { border-color: transparent; color: var(--accent2); }
+        .tab-btn.active::after { left: 0; right: 0; }
 
         #btn-desfiltrar-flutuante {
             position: fixed;
@@ -268,6 +434,77 @@
             transition: 0.2s;
         }
         .btn-remove-field:hover { background: #ef4444; color: white; }
+
+        /* ===== CAMADA EXTRA: HUD / FUTURISTA ===== */
+
+        h1 { font-family: var(--font-display); }
+        #status-cloud span, .action-btn, .tab-btn, #zoomValDisplay, .btn-l, #btn-novo-item, #btn-novo-generico { font-family: var(--font-display); }
+
+        #mainHeader header, #mainHeader section { position: relative; }
+        #mainHeader::after {
+            content: '';
+            position: absolute;
+            left: 0; right: 0; bottom: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent2) 50%, transparent);
+            opacity: 0.6;
+        }
+
+        #status-dot { box-shadow: 0 0 10px 2px currentColor; }
+        #status-dot.bg-emerald-400 { color: #34d399; }
+        #status-dot.bg-yellow-500 { color: #eab308; }
+
+        .zoom-controls { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.5), 0 0 20px -8px rgba(34,211,238,0.35); }
+        .btn-zoom:hover { box-shadow: 0 0 14px -2px var(--accent2); transform: translateY(-1px); }
+
+        #btn-novo-item, #btn-novo-generico { position: relative; overflow: hidden; letter-spacing: 0.03em; }
+        #btn-novo-item:hover { box-shadow: 0 0 26px -4px rgba(59,130,246,0.8); transform: translateY(-2px); }
+        #btn-novo-generico:hover { box-shadow: 0 0 26px -4px rgba(217,119,6,0.8); transform: translateY(-2px); }
+
+        #inputPesquisa { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); font-family: var(--font-mono); letter-spacing: 0.01em; }
+        #inputPesquisa:focus { box-shadow: 0 0 0 4px rgba(59,130,246,0.15), 0 0 24px -6px rgba(34,211,238,0.6); border-color: var(--accent2) !important; }
+
+        .btn-l { transition: all 0.2s cubic-bezier(0.4,0,0.2,1) !important; }
+        .btn-l:hover { transform: translateY(-3px) scale(1.08); box-shadow: 0 6px 14px -4px rgba(34,211,238,0.5); }
+
+        input:checked + .toggle-switch { box-shadow: 0 0 12px -1px rgba(59,130,246,0.7); }
+        .toggle-switch { transition: all 0.3s; }
+        .toggle-container:hover .toggle-switch { border-color: var(--accent2); }
+
+        .generic-row { transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important; }
+        .generic-row:hover { border-color: rgba(34,211,238,0.5) !important; transform: translateX(4px); box-shadow: -4px 0 18px -6px rgba(34,211,238,0.4); }
+
+        #btn-topo { transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important; }
+        #btn-topo:hover { box-shadow: 0 0 24px -2px rgba(59,130,246,0.8); transform: translateY(-3px); }
+
+        /* Modais: entrada holográfica */
+        #modal[style*="flex"] > div, #modal-generico[style*="flex"] > div, #modal-delete[style*="flex"] > div, #modal-duplicado[style*="flex"] > div {
+            animation: modalIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalIn {
+            from { opacity: 0; transform: scale(0.92) translateY(16px); filter: blur(6px); }
+            to { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+        }
+        #modal > div, #modal-generico > div { position: relative; }
+        #modal > div::before, #modal-generico > div::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 6%; right: 6%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent2), transparent);
+            box-shadow: 0 0 12px 1px var(--accent2);
+        }
+
+        #form-veiculo:focus, #form-obs:focus, #form-gen-peca:focus, .input-desc-item:focus, .input-marca-gen:focus {
+            box-shadow: 0 0 0 3px rgba(34,211,238,0.15);
+        }
+
+        button, .action-btn, .btn-paginacao, .btn-zoom, .btn-l { -webkit-tap-highlight-color: transparent; }
+
+        @media (prefers-reduced-motion: reduce) {
+            body::before, body::after, .manual2-card::before { animation: none !important; }
+            * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+        }
     </style>
 </head>
 <body class="pb-32">
@@ -339,7 +576,12 @@
         </div>
 
         <main id="listaItens" class="p-8 max-w-[1900px] mx-auto gap-6 mt-10">
-            <div id="loading-state" class="col-span-full text-center py-20 text-slate-800 font-black uppercase text-[10px] tracking-[0.3em]">Sincronizando Banco de Dados...</div>
+            <div id="loading-state" class="col-span-full text-center py-20 text-slate-600 font-black uppercase text-[10px] tracking-[0.3em]">
+                <span class="inline-block relative">
+                    <span class="animate-pulse">Sincronizando Banco de Dados</span>
+                    <span class="inline-block w-2 h-2 rounded-full bg-cyan-400 ml-2 align-middle animate-ping"></span>
+                </span>
+            </div>
         </main>
 
         <div id="controlesPaginacao" class="paginacao-container hidden">
@@ -434,12 +676,30 @@
         </div>
     </div>
 
-    <div id="modal-delete" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-[2000] hidden items-center justify-center p-4">
-        <div class="bg-[#111827] p-10 rounded-[2.5rem] w-full max-w-sm border border-red-500/20 shadow-2xl flex flex-col items-center">
-            <h2 class="text-2xl font-black text-white uppercase italic mb-10 text-center">Apagar Registro Definitivamente?</h2>
+    <div id="modal-delete" class="fixed inset-0 bg-black/95 backdrop-blur-lg z-[2000] hidden items-center justify-center p-4">
+        <div class="bg-[#111827] p-8 md:p-10 rounded-[2.5rem] w-full max-w-md border border-red-500/30 shadow-2xl shadow-red-950/50 flex flex-col items-center card-anim">
+            
+            <div class="w-20 h-20 bg-red-500/10 border border-red-500/30 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            
+            <h2 class="text-xl md:text-2xl font-black text-white uppercase italic mb-2 text-center tracking-tight">
+                Apagar Registro?
+            </h2>
+            
+            <p class="text-slate-400 text-[10px] font-bold text-center mb-8 uppercase tracking-widest leading-relaxed max-w-xs">
+                Atenção: Esta ação é definitiva e removerá completamente o card do banco de dados <span class="text-red-500">MOTORMAX</span>.
+            </p>
+            
             <div class="w-full space-y-3">
-                <button id="confirm-delete-btn" class="w-full bg-[#ef4444] p-5 rounded-2xl font-black text-white uppercase text-sm">Sim, Excluir</button>
-                <button onclick="fecharModalDelete()" class="w-full bg-[#1e293b] p-5 rounded-2xl font-black text-slate-400 uppercase text-sm">Cancelar</button>
+                <button id="confirm-delete-btn" class="w-full bg-red-600 hover:bg-red-500 p-5 rounded-2xl font-black text-white uppercase text-xs tracking-wider transition-all duration-200 transform hover:scale-[1.02] shadow-lg shadow-red-600/20">
+                    Sim, Excluir Definitivamente
+                </button>
+                <button onclick="fecharModalDelete()" class="w-full bg-slate-800 hover:bg-slate-700 p-5 rounded-2xl font-black text-slate-400 hover:text-white uppercase text-xs tracking-wider transition-all duration-200">
+                    Cancelar / Voltar
+                </button>
             </div>
         </div>
     </div>
@@ -814,6 +1074,66 @@
         });
         
         login();
+    </script>
+
+    <!-- CAMADA DE INTERAÇÃO EXTRA (puramente visual, não altera nenhuma lógica/dado acima) -->
+    <script>
+        (function() {
+            const root = document.documentElement;
+            let raf = null;
+
+            // Spotlight que segue o cursor (alimenta o gradiente radial do body)
+            window.addEventListener('pointermove', (e) => {
+                if (raf) return;
+                raf = requestAnimationFrame(() => {
+                    root.style.setProperty('--mx', e.clientX + 'px');
+                    root.style.setProperty('--my', e.clientY + 'px');
+                    raf = null;
+                });
+            }, { passive: true });
+
+            // Ripple universal em qualquer botão/elemento clicável
+            document.addEventListener('click', (e) => {
+                const target = e.target.closest('button, .action-btn, .btn-paginacao, .btn-zoom, .btn-l, .box-main');
+                if (!target) return;
+                const rect = target.getBoundingClientRect();
+                const size = Math.max(rect.width, rect.height);
+                const ripple = document.createElement('span');
+                ripple.className = 'ripple';
+                ripple.style.width = ripple.style.height = size + 'px';
+                ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+                ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+                const prevPosition = getComputedStyle(target).position;
+                if (prevPosition === 'static') target.style.position = 'relative';
+                target.style.overflow = target.style.overflow || 'hidden';
+                target.appendChild(ripple);
+                setTimeout(() => ripple.remove(), 650);
+            });
+
+            // Leve tilt 3D nos cards ao passar o mouse (respeita prefers-reduced-motion)
+            const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (!reduceMotion) {
+                document.addEventListener('mousemove', (e) => {
+                    const card = e.target.closest('.manual2-card');
+                    document.querySelectorAll('.manual2-card.is-tilting').forEach(c => {
+                        if (c !== card) { c.style.transform = ''; c.classList.remove('is-tilting'); }
+                    });
+                    if (!card) return;
+                    const rect = card.getBoundingClientRect();
+                    const px = (e.clientX - rect.left) / rect.width - 0.5;
+                    const py = (e.clientY - rect.top) / rect.height - 0.5;
+                    card.classList.add('is-tilting');
+                    card.style.transform = `translateY(-4px) rotateX(${(-py * 6).toFixed(2)}deg) rotateY(${(px * 6).toFixed(2)}deg)`;
+                }, { passive: true });
+
+                document.addEventListener('mouseleave', (e) => {
+                    if (e.target && e.target.classList && e.target.classList.contains('manual2-card')) {
+                        e.target.style.transform = '';
+                        e.target.classList.remove('is-tilting');
+                    }
+                }, true);
+            }
+        })();
     </script>
 </body>
 </html>
