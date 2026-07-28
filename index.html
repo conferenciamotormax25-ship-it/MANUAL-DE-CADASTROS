@@ -189,6 +189,15 @@
             overflow: hidden;
             height: 100%;
             transform-style: preserve-3d;
+            resize: both;
+            overflow: auto;
+            min-width: 260px;
+            min-height: 180px;
+        }
+
+        /* alça de redimensionar mais visível no canto do card */
+        .manual2-card::-webkit-resizer {
+            background: linear-gradient(135deg, transparent 0 45%, var(--accent2) 45% 55%, transparent 55% 100%);
         }
 
         /* borda holográfica animada que aparece no hover */
@@ -260,6 +269,75 @@
         .manual2-title { font-family: var(--font-display); font-size: 0.88rem; font-weight: 800; color: #fff; text-transform: uppercase; line-height: 1.3; letter-spacing: 0.01em; word-break: break-word; border-left: 4px solid var(--accent2); padding-left: 12px; text-shadow: 0 0 18px rgba(34, 211, 238, 0.25); }
 
         .desc-container { display: flex; flex-direction: column; gap: 6px; }
+
+        /* CAMPOS EXTRAS: COD ORIGINAL / COD GENERICO / APLICAÇÃO / MARCA / COD BARRAS */
+        .extra-info-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px; }
+        .info-chip {
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            border-radius: 10px;
+            padding: 9px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            border: 1px solid transparent;
+            transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+        .info-chip::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(100deg, transparent 40%, rgba(255,255,255,0.14) 50%, transparent 60%);
+            transform: translateX(-120%);
+            transition: transform 0.6s ease;
+            pointer-events: none;
+        }
+        .info-chip:hover::before { transform: translateX(120%); }
+        .info-chip:hover { transform: translateY(-2px); }
+        .info-chip:active { transform: scale(0.97); }
+        .info-chip::after {
+            content: 'COPIAR';
+            position: absolute;
+            top: 6px; right: 8px;
+            font-size: 7px;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            opacity: 0;
+            transition: 0.2s;
+            background: rgba(255,255,255,0.18);
+            padding: 1px 5px;
+            border-radius: 4px;
+        }
+        .info-chip:hover::after { opacity: 1; }
+        .info-chip-label { font-size: 7.5px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.09em; opacity: 0.8; }
+        .info-chip-value { font-family: var(--font-mono); font-size: 0.76rem; font-weight: 700; word-break: break-word; padding-right: 30px; }
+        .info-chip-full { grid-column: 1 / -1; }
+
+        .info-chip-original { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.3); }
+        .info-chip-original .info-chip-label { color: #60a5fa; }
+        .info-chip-original .info-chip-value { color: #bfdbfe; }
+        .info-chip-original:hover { background: rgba(59,130,246,0.16); border-color: rgba(59,130,246,0.55); box-shadow: 0 6px 16px -6px rgba(59,130,246,0.5); }
+
+        .info-chip-generico { background: rgba(167,139,250,0.08); border-color: rgba(167,139,250,0.3); }
+        .info-chip-generico .info-chip-label { color: #a78bfa; }
+        .info-chip-generico .info-chip-value { color: #ddd6fe; }
+        .info-chip-generico:hover { background: rgba(167,139,250,0.16); border-color: rgba(167,139,250,0.55); box-shadow: 0 6px 16px -6px rgba(167,139,250,0.5); }
+
+        .info-chip-aplicacao { background: rgba(34,211,238,0.08); border-color: rgba(34,211,238,0.3); }
+        .info-chip-aplicacao .info-chip-label { color: #22d3ee; }
+        .info-chip-aplicacao .info-chip-value { color: #cffafe; }
+        .info-chip-aplicacao:hover { background: rgba(34,211,238,0.16); border-color: rgba(34,211,238,0.55); box-shadow: 0 6px 16px -6px rgba(34,211,238,0.5); }
+
+        .info-chip-marca { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.3); }
+        .info-chip-marca .info-chip-label { color: #f59e0b; }
+        .info-chip-marca .info-chip-value { color: #fde68a; }
+        .info-chip-marca:hover { background: rgba(245,158,11,0.16); border-color: rgba(245,158,11,0.55); box-shadow: 0 6px 16px -6px rgba(245,158,11,0.5); }
+
+        .info-chip-barras { background: rgba(148,163,184,0.08); border-color: rgba(148,163,184,0.3); }
+        .info-chip-barras .info-chip-label { color: #cbd5e1; }
+        .info-chip-barras .info-chip-value { color: #f1f5f9; letter-spacing: 0.04em; }
+        .info-chip-barras:hover { background: rgba(148,163,184,0.16); border-color: rgba(148,163,184,0.55); box-shadow: 0 6px 16px -6px rgba(148,163,184,0.4); }
         
         .box-main { 
             background: rgba(15, 23, 42, 0.6); 
@@ -611,6 +689,76 @@
         </div>
     </div>
 
+    <!-- >>>>>>>>>>>>>>>>>>>> NOVO MODAL (CONFIGURAR O CARD) >>>>>>>>>>>>>>>>>>>> -->
+    <div id="modal-config-card" class="fixed inset-0 bg-black/90 backdrop-blur-lg z-[2600] hidden items-center justify-center p-4">
+        <div class="bg-[#0b1220] p-8 rounded-[2rem] w-full max-w-xl border border-cyan-400/20 shadow-2xl relative">
+            <div class="absolute inset-0 pointer-events-none rounded-[2rem] opacity-60"
+                 style="background: radial-gradient(800px circle at 20% 10%, rgba(34,211,238,0.20), transparent 40%),
+                                  radial-gradient(700px circle at 90% 20%, rgba(59,130,246,0.18), transparent 45%);"></div>
+
+            <div class="relative flex justify-between items-center mb-6">
+                <h2 class="text-xl font-black text-white italic uppercase">Configurar Card</h2>
+                <button onclick="window.fecharModalConfigCard()" class="text-slate-300 hover:text-white" aria-label="Fechar">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <p class="relative text-slate-300 text-[11px] font-bold uppercase tracking-widest mb-5 leading-relaxed">
+                Marque o que você deseja ver no card.
+            </p>
+
+            <div class="relative bg-slate-900/40 border border-slate-800 rounded-2xl p-4 space-y-3 max-h-[45vh] overflow-y-auto">
+                <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+                    <span class="text-white font-black text-[11px] uppercase">Cód Original</span>
+                    <input type="checkbox" id="cfg-cod-original" class="hidden">
+                    <div class="toggle-switch"></div>
+                </label>
+
+                <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+                    <span class="text-white font-black text-[11px] uppercase">Cód Genérico</span>
+                    <input type="checkbox" id="cfg-cod-generico" class="hidden">
+                    <div class="toggle-switch"></div>
+                </label>
+
+                <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+                    <span class="text-white font-black text-[11px] uppercase">Aplicação</span>
+                    <input type="checkbox" id="cfg-aplicacao" class="hidden">
+                    <div class="toggle-switch"></div>
+                </label>
+
+                <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+                    <span class="text-white font-black text-[11px] uppercase">Marca</span>
+                    <input type="checkbox" id="cfg-marca" class="hidden">
+                    <div class="toggle-switch"></div>
+                </label>
+
+                <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+                    <span class="text-white font-black text-[11px] uppercase">Cód de Barras</span>
+                    <input type="checkbox" id="cfg-cod-barras" class="hidden">
+                    <div class="toggle-switch"></div>
+                </label>
+
+                <label class="flex items-center justify-between gap-4 cursor-pointer select-none">
+                    <span class="text-white font-black text-[11px] uppercase">Observações</span>
+                    <input type="checkbox" id="cfg-obs" class="hidden">
+                    <div class="toggle-switch"></div>
+                </label>
+            </div>
+
+            <div class="relative flex gap-3 mt-6">
+                <button onclick="window.confirmarConfigCard()" class="flex-[2] bg-cyan-600 hover:bg-cyan-500 p-4 rounded-xl font-black text-white uppercase text-sm">
+                    Aplicar & Salvar
+                </button>
+                <button onclick="window.fecharModalConfigCard()" class="flex-1 bg-slate-800 p-4 rounded-xl font-black text-slate-300 uppercase text-sm">
+                    Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- >>>>>>>>>>>>>>>>>>>> FIM NOVO MODAL >>>>>>>>>>>>>>>>>>>> -->
+
     <div id="modal" class="fixed inset-0 bg-black/95 backdrop-blur-lg z-[1000] hidden items-center justify-center p-4">
         <div class="bg-[#1e293b] p-8 rounded-[2rem] w-full max-w-xl border border-slate-700 shadow-2xl relative">
             <div id="modal-success-overlay">
@@ -625,6 +773,20 @@
             <div class="space-y-6 max-h-[60vh] overflow-y-auto pr-3 form-scroll">
                 <input type="hidden" id="form-id">
                 <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">PEÇA</label><input id="form-veiculo" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód Original</label><input id="form-cod-original" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
+                    <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód Genérico</label><input id="form-cod-generico" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
+                    <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Aplicação</label><input id="form-aplicacao" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
+                    <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Marca</label><input id="form-marca" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
+                    <div class="md:col-span-2"><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód de Barras</label><input id="form-cod-barras" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
+                    <div class="md:col-span-2">
+                        <label class="toggle-container">
+                            <input type="checkbox" id="form-mostrar-extras" class="hidden" checked>
+                            <div class="toggle-switch"></div>
+                            <span class="text-[9px] font-black uppercase text-slate-500 tracking-widest">Mostrar essas informações no card</span>
+                        </label>
+                    </div>
+                </div>
                 <div>
                     <label class="text-[9px] font-black uppercase text-red-500 mb-2 block tracking-widest">Descrições do Item</label>
                     <div id="container-descricoes" class="space-y-2"></div>
@@ -704,6 +866,7 @@
         </div>
     </div>
 
+    <!-- >>>>>>>>>>>>>>>>>>>> SUBSTITUI O SEU <script type="module"> COMPLETO (JS) ABAIXO >>>>>>>>>>>>>>>>>>>> -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
         import { getFirestore, collection, addDoc, onSnapshot, query, doc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -730,7 +893,120 @@
         let lastScrollTop = 0;
         const mainHeader = document.getElementById('mainHeader');
         const zoomControls = document.getElementById('zoomControls');
-        
+
+        // NOVO: estado do salvar -> abre modal-config-card antes de gravar
+        let _pendingSave = null; // { confirmado, id, v, d, o, codOriginal, codGenerico, aplicacao, marca, codBarras }
+        let _pendDuplicadoConfirm = false;
+
+        const extrasDefaultFromToggle = () => {
+            // Mantém seu HTML intacto: usa o toggle antigo "mostrar essas informações no card"
+            // - Se ligado: marca true para todos os campos "extras" (menos observações? aqui deixamos obs igual ao toggle antigo)
+            // - Se desligado: marca false para tudo (inclui obs), para respeitar sua ideia original.
+            const mostrar = document.getElementById('form-mostrar-extras').checked;
+            return {
+                codOriginal: mostrar,
+                codGenerico: mostrar,
+                aplicacao: mostrar,
+                marca: mostrar,
+                codBarras: mostrar,
+                obs: mostrar
+            };
+        };
+
+        function normalizeExtrasConfig(item) {
+            // Se o documento já tem extrasConfig, usa ele.
+            // Se não tiver (cadastro antigo), cai no fallback:
+            // - usa mostrarExtras antigo como "mostrar tudo"
+            const cfg = item?.extrasConfig;
+            if (cfg && typeof cfg === 'object') {
+                return {
+                    codOriginal: cfg.codOriginal ?? false,
+                    codGenerico: cfg.codGenerico ?? false,
+                    aplicacao: cfg.aplicacao ?? false,
+                    marca: cfg.marca ?? false,
+                    codBarras: cfg.codBarras ?? false,
+                    obs: cfg.obs ?? false
+                };
+            }
+
+            // fallback compatível com dados antigos:
+            const mostrarExtras = item?.mostrarExtras !== false; // seu código anterior tratava "mostrarExtras !== false"
+            return {
+                codOriginal: item?.codOriginal ? mostrarExtras : mostrarExtras,
+                codGenerico: item?.codGenerico ? mostrarExtras : mostrarExtras,
+                aplicacao: item?.aplicacao ? mostrarExtras : mostrarExtras,
+                marca: item?.marca ? mostrarExtras : mostrarExtras,
+                codBarras: item?.codBarras ? mostrarExtras : mostrarExtras,
+                obs: item?.obs ? mostrarExtras : mostrarExtras
+            };
+        }
+
+        function setCfgCheckboxes(cfg) {
+            document.getElementById('cfg-cod-original').checked = !!cfg.codOriginal;
+            document.getElementById('cfg-cod-generico').checked = !!cfg.codGenerico;
+            document.getElementById('cfg-aplicacao').checked = !!cfg.aplicacao;
+            document.getElementById('cfg-marca').checked = !!cfg.marca;
+            document.getElementById('cfg-cod-barras').checked = !!cfg.codBarras;
+            document.getElementById('cfg-obs').checked = !!cfg.obs;
+        }
+
+        function lerCfgCheckboxes() {
+            return {
+                codOriginal: document.getElementById('cfg-cod-original').checked,
+                codGenerico: document.getElementById('cfg-cod-generico').checked,
+                aplicacao: document.getElementById('cfg-aplicacao').checked,
+                marca: document.getElementById('cfg-marca').checked,
+                codBarras: document.getElementById('cfg-cod-barras').checked,
+                obs: document.getElementById('cfg-obs').checked
+            };
+        }
+
+        window.fecharModalConfigCard = () => {
+            document.getElementById('modal-config-card').style.display = 'none';
+        };
+
+        window.confirmarConfigCard = async () => {
+            try {
+                if (!_pendingSave) return;
+
+                const payloadCfg = lerCfgCheckboxes();
+                const p = _pendingSave;
+
+                // sempre inclui extrasConfig no documento
+                const payload = {
+                    veiculo: p.v,
+                    descricao: p.d,
+                    obs: p.o,
+                    codOriginal: p.codOriginal,
+                    codGenerico: p.codGenerico,
+                    aplicacao: p.aplicacao,
+                    marca: p.marca,
+                    codBarras: p.codBarras,
+                    extrasConfig: payloadCfg,
+                    atualizadoEm: serverTimestamp()
+                };
+
+                if (p.id) await updateDoc(doc(db, "cadastros_veiculos", p.id), payload);
+                else {
+                    const ref = await addDoc(collection(db, "cadastros_veiculos"), payload);
+                    idSalvoRecentemente = ref.id;
+                }
+
+                // fecha
+                fecharModalDuplicado();
+                window.fecharModalConfigCard();
+
+                document.getElementById('modal-success-overlay').style.display = 'flex';
+                setTimeout(fecharModal, 800);
+            } finally {
+                _pendingSave = null;
+            }
+        };
+
+        window.abrirModalConfigCard = () => {
+            document.getElementById('modal-config-card').style.display = 'flex';
+        };
+
         // LÓGICA DE ROLAGEM (Header + Zoom)
         window.addEventListener('scroll', () => {
             let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
@@ -749,13 +1025,18 @@
             const inputPesquisa = document.getElementById('inputPesquisa');
             
             if (e.key === "Escape") {
-                const algumModalAberto = ['modal', 'modal-generico', 'modal-delete', 'modal-duplicado'].some(id => document.getElementById(id).style.display === 'flex');
+                const ids = ['modal', 'modal-generico', 'modal-delete', 'modal-duplicado', 'modal-config-card'];
+                const algumModalAberto = ids.some(id => {
+                    const el = document.getElementById(id);
+                    return el && el.style.display === 'flex';
+                });
                 
                 if (algumModalAberto) {
                     fecharModal();
                     fecharModalGenerico();
                     fecharModalDelete();
                     fecharModalDuplicado();
+                    window.fecharModalConfigCard();
                     if (document.activeElement) document.activeElement.blur();
                 } else {
                     limparBusca();
@@ -767,10 +1048,12 @@
             if (e.ctrlKey && e.key === "Enter") {
                 if(document.getElementById('modal').style.display === 'flex') salvar();
                 if(document.getElementById('modal-generico').style.display === 'flex') salvarGenerico();
+                // se o config modal estiver aberto, aplica também
+                if (document.getElementById('modal-config-card').style.display === 'flex') window.confirmarConfigCard();
                 return;
             }
 
-            const modais = ['modal', 'modal-generico', 'modal-delete', 'modal-duplicado'];
+            const modais = ['modal', 'modal-generico', 'modal-delete', 'modal-duplicado', 'modal-config-card'];
             const algunModalAberto = modais.some(id => document.getElementById(id).style.display === 'flex');
             if (algunModalAberto) return;
 
@@ -881,10 +1164,32 @@
             if (contextoAtual === 'veiculos') {
                 lista.innerHTML = filtrados.map(item => {
                     const descs = (item.descricao || "").split('\n').filter(d => d.trim() !== "");
+
+                    const cfg = normalizeExtrasConfig(item);
+                    const showCodOriginal = cfg.codOriginal && !!item.codOriginal;
+                    const showCodGenerico = cfg.codGenerico && !!item.codGenerico;
+                    const showAplicacao = cfg.aplicacao && !!item.aplicacao;
+                    const showMarca = cfg.marca && !!item.marca;
+                    const showCodBarras = cfg.codBarras && !!item.codBarras;
+                    const showObs = cfg.obs && !!item.obs;
+
+                    const anyExtras =
+                        showCodOriginal || showCodGenerico || showAplicacao || showMarca || showCodBarras;
+
                     return `
                     <div id="card-${item.id}" class="manual2-card card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''}">
                         <div id="copy-overlay-${item.id}" class="copy-feedback">Copiado!</div>
                         <div class="manual2-title">${item.veiculo}</div>
+
+                        ${anyExtras ? `
+                        <div class="extra-info-grid">
+                            ${showCodOriginal ? `<div class="info-chip info-chip-original" onclick="window.copiarCampo('${item.id}', 'codOriginal')"><span class="info-chip-label">Cód Original</span><span class="info-chip-value">${item.codOriginal}</span></div>` : ''}
+                            ${showCodGenerico ? `<div class="info-chip info-chip-generico" onclick="window.copiarCampo('${item.id}', 'codGenerico')"><span class="info-chip-label">Cód Genérico</span><span class="info-chip-value">${item.codGenerico}</span></div>` : ''}
+                            ${showAplicacao ? `<div class="info-chip info-chip-aplicacao" onclick="window.copiarCampo('${item.id}', 'aplicacao')"><span class="info-chip-label">Aplicação</span><span class="info-chip-value">${item.aplicacao}</span></div>` : ''}
+                            ${showMarca ? `<div class="info-chip info-chip-marca" onclick="window.copiarCampo('${item.id}', 'marca')"><span class="info-chip-label">Marca</span><span class="info-chip-value">${item.marca}</span></div>` : ''}
+                            ${showCodBarras ? `<div class="info-chip info-chip-barras info-chip-full" onclick="window.copiarCampo('${item.id}', 'codBarras')"><span class="info-chip-label">Cód de Barras</span><span class="info-chip-value">${item.codBarras}</span></div>` : ''}
+                        </div>` : ''}
+
                         <div class="desc-container">
                             ${descs.map((d, index) => `
                                 <div class="box-main" onclick="window.copiarLinha('${item.id}', ${index})">
@@ -892,12 +1197,15 @@
                                 </div>
                             `).join('')}
                         </div>
-                        ${item.obs ? `<div class="box-sub">${item.obs}</div>` : ''}
+
+                        ${showObs ? `<div class="box-sub">${item.obs}</div>` : ''}
+
                         <div class="card-actions">
                             <button onclick="window.editarItem('${item.id}')" class="action-btn btn-edit-main">Editar</button>
                             <button onclick="window.excluirItem('${item.id}')" class="action-btn btn-delete-main">Excluir</button>
                         </div>
-                    </div>`}).join('');
+                    </div>`;
+                }).join('');
             } else {
                 lista.innerHTML = filtrados.map(item => `
                     <div id="card-${item.id}" class="generic-row card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''}">
@@ -937,11 +1245,20 @@
 
         window.abrirModal = (id = null) => {
             document.getElementById('modal-success-overlay').style.display = 'none';
-            const item = id ? dadosOriginais.find(d => d.id === id) : {id: "", veiculo: "", descricao: "", obs: ""};
+            const item = id ? dadosOriginais.find(d => d.id === id) : {id: "", veiculo: "", descricao: "", obs: "", codOriginal: "", codGenerico: "", aplicacao: "", marca: "", codBarras: "", mostrarExtras: true};
             document.getElementById('form-id').value = item.id;
             document.getElementById('form-veiculo').value = item.veiculo;
             document.getElementById('form-obs').value = item.obs;
-            
+            document.getElementById('form-cod-original').value = item.codOriginal || "";
+            document.getElementById('form-cod-generico').value = item.codGenerico || "";
+            document.getElementById('form-aplicacao').value = item.aplicacao || "";
+            document.getElementById('form-marca').value = item.marca || "";
+            document.getElementById('form-cod-barras').value = item.codBarras || "";
+
+            // mantém seu toggle antigo intacto
+            // (não controla mais o card diretamente; serve como fallback e também para “tudo ligado/desligado” ao criar)
+            document.getElementById('form-mostrar-extras').checked = item.mostrarExtras !== false;
+
             const container = document.getElementById('container-descricoes');
             container.innerHTML = "";
             if(item.descricao) item.descricao.split('\n').forEach(d => adicionarCampoDescricao(d));
@@ -969,12 +1286,19 @@
         window.fecharModalDelete = () => document.getElementById('modal-delete').style.display = 'none';
         window.fecharModalDuplicado = () => document.getElementById('modal-duplicado').style.display = 'none';
 
+        // >>>>>>>>>>>>>> SALVAR: agora abre modal-config-card primeiro <<<<<<<<<<<<<<
         window.salvar = async (confirmado = false) => {
             const modal = document.querySelector('#modal > div');
             const id = document.getElementById('form-id').value;
+
             const v = document.getElementById('form-veiculo').value.toUpperCase().trim();
             const o = document.getElementById('form-obs').value.toUpperCase().trim();
-            
+            const codOriginal = document.getElementById('form-cod-original').value.toUpperCase().trim();
+            const codGenerico = document.getElementById('form-cod-generico').value.toUpperCase().trim();
+            const aplicacao = document.getElementById('form-aplicacao').value.toUpperCase().trim();
+            const marca = document.getElementById('form-marca').value.toUpperCase().trim();
+            const codBarras = document.getElementById('form-cod-barras').value.toUpperCase().trim();
+
             const inputs = document.querySelectorAll('.input-desc-item');
             const descricoes = Array.from(inputs).map(i => i.value.toUpperCase().trim()).filter(val => val !== "");
 
@@ -995,13 +1319,23 @@
                 }
             }
 
-            const payload = { veiculo: v, descricao: d, obs: o, atualizadoEm: serverTimestamp() };
-            if(id) await updateDoc(doc(db, "cadastros_veiculos", id), payload);
-            else { const ref = await addDoc(collection(db, "cadastros_veiculos"), payload); idSalvoRecentemente = ref.id; }
-            
-            fecharModalDuplicado();
-            document.getElementById('modal-success-overlay').style.display = 'flex';
-            setTimeout(fecharModal, 800);
+            // prepara payload pendente para depois do modal-config-card
+            _pendingSave = {
+                confirmado,
+                id: id ? id : null,
+                v, d, o, codOriginal, codGenerico, aplicacao, marca, codBarras
+            };
+
+            // pré-preenche modal-config-card com o que já existe (se editar) ou fallback (se criar)
+            let itemAtual = null;
+            if (id) itemAtual = dadosOriginais.find(x => x.id === id);
+
+            let cfgInicial = null;
+            if (itemAtual) cfgInicial = normalizeExtrasConfig(itemAtual);
+            else cfgInicial = extrasDefaultFromToggle();
+
+            setCfgCheckboxes(cfgInicial);
+            window.abrirModalConfigCard();
         };
 
         window.salvarGenerico = async (confirmado = false) => {
@@ -1050,6 +1384,15 @@
             const linhas = (item.descricao || "").split('\n').filter(d => d.trim() !== "");
             const textoParaCopiar = linhas[index];
             navigator.clipboard.writeText(textoParaCopiar).then(() => {
+                const ov = document.getElementById(`copy-overlay-${id}`);
+                ov.style.opacity = '1'; setTimeout(() => ov.style.opacity = '0', 800);
+            });
+        };
+
+        window.copiarCampo = (id, campo) => {
+            const item = dadosOriginais.find(d => d.id === id);
+            if (!item || !item[campo]) return;
+            navigator.clipboard.writeText(item[campo]).then(() => {
                 const ov = document.getElementById(`copy-overlay-${id}`);
                 ov.style.opacity = '1'; setTimeout(() => ov.style.opacity = '0', 800);
             });
