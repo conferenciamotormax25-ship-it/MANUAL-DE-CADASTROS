@@ -501,6 +501,28 @@
             transition: all 0.2s;
         }
         .btn-add-desc:hover { background: rgba(16, 185, 129, 0.1); border-color: #10b981; }
+        .extra-field-picker {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .btn-add-extra {
+            background: rgba(34, 211, 238, 0.05);
+            border: 1px dashed rgba(34, 211, 238, 0.4);
+            color: #22d3ee;
+            padding: 10px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+        .btn-add-extra:hover {
+            background: rgba(34, 211, 238, 0.1);
+            border-color: #22d3ee;
+            transform: translateY(-1px);
+        }
+        .extra-form-field[hidden], .btn-add-extra[hidden] { display: none !important; }
         .btn-remove-field {
             background: rgba(239, 68, 68, 0.1);
             color: #ef4444;
@@ -584,6 +606,912 @@
             * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
         }
     </style>
+
+    <!-- =====================================================================
+         UPGRADE PROFISSIONAL DO MODAL DE CADASTRO
+         Camada adicional: preserva todos os recursos e elementos originais.
+    ====================================================================== -->
+    <style id="professional-modal-upgrade">
+        /* Base do diálogo: mais espaço, leitura clara e rolagem previsível */
+        #modal {
+            --pro-surface: #111a2b;
+            --pro-surface-soft: rgba(15, 23, 42, 0.72);
+            --pro-surface-strong: #07101f;
+            --pro-line: rgba(148, 163, 184, 0.18);
+            --pro-line-strong: rgba(96, 165, 250, 0.42);
+            --pro-blue: #3b82f6;
+            --pro-cyan: #22d3ee;
+            --pro-muted: #94a3b8;
+            padding: clamp(10px, 2vw, 24px) !important;
+            align-items: center !important;
+            overscroll-behavior: contain;
+        }
+
+        #modal .pro-modal-shell {
+            width: min(1120px, 100%) !important;
+            max-width: 1120px !important;
+            height: min(92vh, 900px);
+            max-height: 92vh;
+            padding: 0 !important;
+            border-radius: 28px !important;
+            overflow: hidden !important;
+            display: flex;
+            flex-direction: column;
+            background:
+                radial-gradient(900px circle at 8% -10%, rgba(34, 211, 238, 0.12), transparent 42%),
+                radial-gradient(720px circle at 100% 0%, rgba(59, 130, 246, 0.14), transparent 44%),
+                linear-gradient(180deg, #182338 0%, #101a2b 100%) !important;
+            border: 1px solid rgba(125, 211, 252, 0.28) !important;
+            box-shadow:
+                0 34px 90px -30px rgba(0, 0, 0, 0.95),
+                0 0 0 1px rgba(255, 255, 255, 0.025) inset,
+                0 0 48px -28px rgba(34, 211, 238, 0.8) !important;
+            transition: width 0.24s ease, height 0.24s ease, border-radius 0.24s ease;
+        }
+
+        #modal .pro-modal-shell.is-expanded {
+            width: calc(100vw - 24px) !important;
+            max-width: none !important;
+            height: calc(100vh - 24px) !important;
+            max-height: none !important;
+            border-radius: 22px !important;
+        }
+
+        #modal .pro-modal-header {
+            margin: 0 !important;
+            padding: 22px 28px 18px;
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            border-bottom: 1px solid var(--pro-line);
+            background: rgba(6, 13, 26, 0.62);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        #modal .pro-title-area {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        #modal .pro-title-mark {
+            width: 44px;
+            height: 44px;
+            flex: 0 0 44px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            color: #dbeafe;
+            background: linear-gradient(145deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.78));
+            border: 1px solid rgba(147, 197, 253, 0.42);
+            box-shadow: 0 10px 24px -14px rgba(59, 130, 246, 0.95);
+        }
+
+        #modal .pro-title-copy {
+            min-width: 0;
+        }
+
+        #modal #modalTitle {
+            margin: 0 !important;
+            font-family: var(--font-display);
+            font-size: clamp(1rem, 1.8vw, 1.28rem) !important;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        #modal .pro-modal-subtitle {
+            margin-top: 5px;
+            color: #94a3b8;
+            font-size: 0.68rem;
+            font-weight: 700;
+            line-height: 1.35;
+            letter-spacing: 0.015em;
+        }
+
+        #modal .pro-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 0 0 auto;
+        }
+
+        #modal .pro-header-btn,
+        #modal .pro-close-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 13px;
+            display: grid;
+            place-items: center;
+            color: #cbd5e1 !important;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(15, 23, 42, 0.72);
+            transition: transform 0.2s ease, color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+        }
+
+        #modal .pro-header-btn:hover,
+        #modal .pro-close-btn:hover {
+            color: #fff !important;
+            border-color: rgba(96, 165, 250, 0.58);
+            background: rgba(30, 64, 175, 0.28);
+            transform: translateY(-1px);
+        }
+
+        #modal .pro-close-btn:hover {
+            border-color: rgba(248, 113, 113, 0.52);
+            background: rgba(127, 29, 29, 0.32);
+        }
+
+        #modal .pro-modal-body {
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: none !important;
+            margin: 0 !important;
+            padding: 24px 28px !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            scrollbar-gutter: stable;
+            overscroll-behavior: contain;
+        }
+
+        #modal .pro-modal-body > :not([hidden]) ~ :not([hidden]) {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+        }
+
+        #modal .pro-modal-body::-webkit-scrollbar {
+            width: 9px;
+        }
+
+        #modal .pro-modal-body::-webkit-scrollbar-track {
+            background: rgba(2, 6, 23, 0.24);
+            border-radius: 99px;
+        }
+
+        #modal .pro-modal-body::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #60a5fa, #2563eb);
+            border: 2px solid rgba(2, 6, 23, 0.55);
+            border-radius: 99px;
+        }
+
+        #modal .pro-form-layout {
+            display: grid;
+            grid-template-columns: minmax(0, 1.18fr) minmax(340px, 0.82fr);
+            align-items: start;
+            gap: 22px;
+            width: 100%;
+        }
+
+        #modal .pro-primary-panel,
+        #modal .pro-meta-panel {
+            min-width: 0;
+            border: 1px solid var(--pro-line);
+            border-radius: 22px;
+            background: rgba(5, 12, 25, 0.48);
+            box-shadow: 0 18px 44px -34px rgba(0, 0, 0, 0.92);
+        }
+
+        #modal .pro-primary-panel {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        #modal .pro-meta-panel {
+            padding: 20px;
+            position: sticky;
+            top: 0;
+        }
+
+        #modal .pro-panel-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+        }
+
+        #modal .pro-panel-heading-main {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            min-width: 0;
+        }
+
+        #modal .pro-panel-icon {
+            width: 34px;
+            height: 34px;
+            flex: 0 0 34px;
+            display: grid;
+            place-items: center;
+            border-radius: 11px;
+            color: #93c5fd;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(96, 165, 250, 0.2);
+        }
+
+        #modal .pro-panel-title {
+            color: #f8fafc;
+            font-size: 0.77rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            line-height: 1.25;
+        }
+
+        #modal .pro-panel-helper {
+            margin-top: 3px;
+            color: #7f8da3;
+            font-size: 0.61rem;
+            font-weight: 700;
+            line-height: 1.35;
+        }
+
+        #modal .pro-edit-all-btn {
+            min-height: 34px;
+            padding: 0 12px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            color: #bfdbfe;
+            background: rgba(37, 99, 235, 0.13);
+            border: 1px solid rgba(96, 165, 250, 0.24);
+            font-size: 0.58rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.055em;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        #modal .pro-edit-all-btn:hover {
+            color: #fff;
+            background: rgba(37, 99, 235, 0.28);
+            border-color: rgba(96, 165, 250, 0.54);
+            transform: translateY(-1px);
+        }
+
+        #modal .pro-piece-block,
+        #modal .pro-description-block,
+        #modal .pro-observation-block {
+            min-width: 0;
+        }
+
+        #modal .pro-piece-block > label,
+        #modal .pro-section-label,
+        #modal .pro-meta-panel label[for] {
+            color: #a9b7cb !important;
+            font-size: 0.61rem !important;
+            letter-spacing: 0.1em !important;
+        }
+
+        #modal #form-veiculo {
+            min-height: 60px;
+            padding: 16px 17px !important;
+            border-radius: 15px !important;
+            border-color: rgba(148, 163, 184, 0.24) !important;
+            background: rgba(2, 6, 23, 0.82) !important;
+            color: #f8fafc !important;
+            font-size: 0.98rem;
+            letter-spacing: 0.01em;
+            box-shadow: 0 1px 0 rgba(255, 255, 255, 0.025) inset;
+        }
+
+        #modal #form-veiculo:focus {
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.14), 0 14px 30px -24px rgba(59, 130, 246, 0.9) !important;
+        }
+
+        #modal .pro-inline-helper {
+            margin-top: 7px;
+            color: #64748b;
+            font-size: 0.59rem;
+            font-weight: 650;
+            line-height: 1.45;
+        }
+
+        #modal .pro-section-card {
+            padding: 17px;
+            border-radius: 18px;
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            background: rgba(15, 23, 42, 0.34);
+        }
+
+        #modal .pro-section-title-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        #modal .pro-section-title-copy {
+            min-width: 0;
+        }
+
+        #modal .pro-section-title-copy label {
+            margin: 0 !important;
+        }
+
+        #modal .pro-section-description {
+            margin-top: 4px;
+            color: #718096;
+            font-size: 0.59rem;
+            font-weight: 650;
+            line-height: 1.4;
+        }
+
+        #modal #container-descricoes {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        #modal .pro-description-item {
+            display: block !important;
+            margin: 0 !important;
+            padding: 13px;
+            border-radius: 16px;
+            border: 1px solid rgba(100, 116, 139, 0.23);
+            background: rgba(2, 6, 23, 0.58);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+        }
+
+        #modal .pro-description-item:hover {
+            border-color: rgba(52, 211, 153, 0.34);
+        }
+
+        #modal .pro-description-item.is-editing,
+        #modal .pro-description-item:focus-within {
+            border-color: rgba(52, 211, 153, 0.7);
+            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.09);
+        }
+
+        #modal .pro-description-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 9px;
+        }
+
+        #modal .pro-description-index {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            color: #a7f3d0;
+            font-size: 0.58rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        #modal .pro-description-index::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            border-radius: 99px;
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.75);
+        }
+
+        #modal .pro-description-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        #modal .pro-mini-btn {
+            min-height: 31px;
+            padding: 0 10px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            background: rgba(30, 41, 59, 0.74);
+            color: #cbd5e1;
+            font-size: 0.56rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+        }
+
+        #modal .pro-mini-btn:hover {
+            color: #fff;
+            border-color: rgba(96, 165, 250, 0.48);
+            background: rgba(30, 64, 175, 0.26);
+        }
+
+        #modal .pro-mini-btn.pro-danger:hover {
+            border-color: rgba(248, 113, 113, 0.52);
+            background: rgba(127, 29, 29, 0.34);
+            color: #fecaca;
+        }
+
+        #modal .pro-description-textarea {
+            width: 100%;
+            min-height: 82px;
+            max-height: 360px;
+            resize: vertical !important;
+            overflow: auto !important;
+            padding: 13px 14px !important;
+            border-radius: 13px !important;
+            border: 1px solid rgba(71, 85, 105, 0.7) !important;
+            outline: none;
+            background: rgba(2, 6, 23, 0.94) !important;
+            color: #6ee7b7 !important;
+            font-family: var(--font-mono) !important;
+            font-size: 0.79rem !important;
+            font-weight: 700 !important;
+            line-height: 1.55;
+            text-transform: uppercase;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #modal .pro-description-textarea:focus {
+            border-color: #34d399 !important;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
+        }
+
+        #modal .pro-description-item-footer {
+            margin-top: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #5f6d82;
+            font-size: 0.54rem;
+            font-weight: 800;
+            letter-spacing: 0.045em;
+            text-transform: uppercase;
+        }
+
+        #modal .pro-resize-hint {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        #modal .pro-add-description {
+            width: auto !important;
+            min-height: 38px;
+            margin: 0 !important;
+            padding: 0 13px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            border-style: solid !important;
+            border-color: rgba(52, 211, 153, 0.36) !important;
+            background: rgba(16, 185, 129, 0.11) !important;
+            color: #a7f3d0 !important;
+            border-radius: 11px !important;
+            white-space: nowrap;
+        }
+
+        #modal .pro-add-description:hover {
+            border-color: rgba(52, 211, 153, 0.72) !important;
+            background: rgba(16, 185, 129, 0.2) !important;
+            transform: translateY(-1px);
+        }
+
+        #modal .pro-observation-block #form-obs {
+            width: 100%;
+            min-height: 118px !important;
+            max-height: 360px;
+            resize: vertical !important;
+            overflow: auto !important;
+            padding: 14px 15px !important;
+            border-radius: 14px !important;
+            border-color: rgba(248, 113, 113, 0.28) !important;
+            background: rgba(2, 6, 23, 0.88) !important;
+            color: #fda4af !important;
+            font-size: 0.76rem !important;
+            line-height: 1.55;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+
+        #modal .pro-observation-block #form-obs:focus {
+            border-color: rgba(248, 113, 113, 0.72) !important;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1) !important;
+        }
+
+        #modal .pro-observation-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 8px;
+            color: #67758a;
+            font-size: 0.54rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.045em;
+        }
+
+        /* Painel de códigos: todos os dados ficam em largura integral */
+        #modal .pro-meta-panel > .grid {
+            display: flex !important;
+            flex-direction: column;
+            gap: 14px !important;
+            margin-top: 16px;
+        }
+
+        #modal .pro-meta-panel .extra-form-field,
+        #modal .pro-meta-panel .md\:col-span-2 {
+            width: 100%;
+            grid-column: auto !important;
+        }
+
+        #modal .pro-meta-panel .extra-field-picker {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        #modal .pro-meta-panel .btn-add-extra {
+            min-height: 42px;
+            padding: 9px 10px;
+            border-radius: 11px;
+            line-height: 1.25;
+        }
+
+        #modal .pro-meta-picker-copy {
+            margin-bottom: 10px;
+            color: #7b8aa0;
+            font-size: 0.58rem;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        #modal .pro-extra-field {
+            padding: 13px;
+            border: 1px solid rgba(100, 116, 139, 0.2);
+            border-radius: 15px;
+            background: rgba(2, 6, 23, 0.46);
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        #modal .pro-extra-field:focus-within,
+        #modal .pro-extra-field.is-editing {
+            border-color: rgba(96, 165, 250, 0.55);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.08);
+        }
+
+        #modal .pro-extra-field > .flex {
+            display: grid !important;
+            grid-template-columns: minmax(0, 1fr) auto 46px;
+            align-items: stretch;
+            gap: 8px !important;
+        }
+
+        #modal .pro-extra-field input {
+            min-width: 0;
+            width: 100%;
+            height: 54px;
+            padding: 13px 14px !important;
+            border-radius: 12px !important;
+            border-color: rgba(71, 85, 105, 0.68) !important;
+            background: rgba(2, 6, 23, 0.94) !important;
+            font-family: var(--font-mono);
+            color: #f8fafc !important;
+            font-size: 0.76rem;
+            letter-spacing: 0.01em;
+            text-overflow: clip;
+        }
+
+        #modal .pro-extra-field input:focus {
+            border-color: #60a5fa !important;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12) !important;
+        }
+
+        #modal .pro-field-edit-btn {
+            min-width: 82px;
+            height: 54px;
+            padding: 0 12px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            color: #dbeafe;
+            background: rgba(37, 99, 235, 0.18);
+            border: 1px solid rgba(96, 165, 250, 0.3);
+            font-size: 0.58rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+        }
+
+        #modal .pro-field-edit-btn:hover {
+            background: rgba(37, 99, 235, 0.36);
+            border-color: rgba(96, 165, 250, 0.65);
+            transform: translateY(-1px);
+        }
+
+        #modal .pro-extra-field .btn-remove-field {
+            width: 46px !important;
+            height: 54px;
+            border-radius: 12px !important;
+        }
+
+        #modal .pro-value-preview {
+            display: none;
+            margin-top: 9px;
+            padding: 9px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(96, 165, 250, 0.14);
+            background: rgba(30, 41, 59, 0.42);
+        }
+
+        #modal .pro-value-preview.has-value {
+            display: block;
+        }
+
+        #modal .pro-value-preview-label {
+            display: block;
+            margin-bottom: 4px;
+            color: #6f829d;
+            font-size: 0.5rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        #modal .pro-value-preview-value {
+            display: block;
+            color: #dbeafe;
+            font-family: var(--font-mono);
+            font-size: 0.67rem;
+            font-weight: 700;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            white-space: pre-wrap;
+        }
+
+        #modal .pro-meta-panel .toggle-container {
+            margin: 1px 0 0;
+            padding: 12px 13px;
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            border-radius: 13px;
+            background: rgba(15, 23, 42, 0.42);
+        }
+
+        #modal .pro-modal-footer {
+            margin: 0 !important;
+            padding: 17px 28px 21px;
+            flex: 0 0 auto;
+            display: flex !important;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px !important;
+            border-top: 1px solid var(--pro-line);
+            background: rgba(6, 13, 26, 0.76);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        #modal .pro-footer-copy {
+            min-width: 0;
+        }
+
+        #modal .pro-footer-title {
+            color: #cbd5e1;
+            font-size: 0.64rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.055em;
+        }
+
+        #modal .pro-footer-helper {
+            margin-top: 4px;
+            color: #68768b;
+            font-size: 0.57rem;
+            font-weight: 650;
+            line-height: 1.35;
+        }
+
+        #modal .pro-footer-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: min(100%, 430px);
+        }
+
+        #modal .pro-footer-actions > button {
+            min-height: 52px;
+            margin: 0 !important;
+            border-radius: 14px !important;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            letter-spacing: 0.025em;
+        }
+
+        #modal .pro-save-btn {
+            box-shadow: 0 14px 28px -18px rgba(59, 130, 246, 0.95);
+        }
+
+        #modal .pro-save-btn:hover {
+            box-shadow: 0 17px 34px -18px rgba(59, 130, 246, 1);
+            transform: translateY(-1px);
+        }
+
+        #modal .pro-shortcut-badge {
+            padding: 3px 6px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.13);
+            color: rgba(255, 255, 255, 0.8);
+            font-family: var(--font-mono);
+            font-size: 0.49rem;
+            font-weight: 800;
+            letter-spacing: 0;
+        }
+
+        #modal .pro-empty-hint {
+            padding: 13px;
+            border: 1px dashed rgba(148, 163, 184, 0.24);
+            border-radius: 12px;
+            color: #718096;
+            font-size: 0.61rem;
+            font-weight: 700;
+            text-align: center;
+        }
+
+        @media (max-width: 900px) {
+            #modal .pro-form-layout {
+                grid-template-columns: 1fr;
+            }
+
+            #modal .pro-meta-panel {
+                position: static;
+            }
+
+            #modal .pro-modal-shell {
+                height: min(94vh, 980px);
+                max-height: 94vh;
+            }
+        }
+
+        @media (max-width: 640px) {
+            #modal {
+                padding: 0 !important;
+                align-items: stretch !important;
+            }
+
+            #modal .pro-modal-shell,
+            #modal .pro-modal-shell.is-expanded {
+                width: 100% !important;
+                max-width: none !important;
+                height: 100dvh !important;
+                max-height: 100dvh !important;
+                border-radius: 0 !important;
+                border-left: 0 !important;
+                border-right: 0 !important;
+            }
+
+            #modal .pro-modal-header {
+                padding: 15px 16px 13px;
+            }
+
+            #modal .pro-title-mark {
+                width: 38px;
+                height: 38px;
+                flex-basis: 38px;
+                border-radius: 12px;
+            }
+
+            #modal .pro-modal-subtitle {
+                display: none;
+            }
+
+            #modal .pro-header-btn {
+                display: none;
+            }
+
+            #modal .pro-modal-body {
+                padding: 15px !important;
+            }
+
+            #modal .pro-primary-panel,
+            #modal .pro-meta-panel {
+                padding: 15px;
+                border-radius: 18px;
+            }
+
+            #modal .pro-primary-panel {
+                gap: 15px;
+            }
+
+            #modal .pro-section-card {
+                padding: 13px;
+            }
+
+            #modal .pro-section-title-row {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            #modal .pro-add-description {
+                width: 100% !important;
+            }
+
+            #modal .pro-description-actions .pro-mini-btn span {
+                display: none;
+            }
+
+            #modal .pro-mini-btn {
+                width: 34px;
+                padding: 0;
+            }
+
+            #modal .pro-meta-panel .extra-field-picker {
+                grid-template-columns: 1fr;
+            }
+
+            #modal .pro-extra-field > .flex {
+                grid-template-columns: minmax(0, 1fr) 46px 46px;
+            }
+
+            #modal .pro-field-edit-btn {
+                min-width: 46px;
+                width: 46px;
+                padding: 0;
+            }
+
+            #modal .pro-field-edit-btn span {
+                display: none;
+            }
+
+            #modal .pro-modal-footer {
+                padding: 12px 15px 15px;
+            }
+
+            #modal .pro-footer-copy {
+                display: none;
+            }
+
+            #modal .pro-footer-actions {
+                width: 100%;
+                min-width: 0;
+            }
+
+            #modal .pro-footer-actions > button {
+                min-height: 50px;
+            }
+
+            #modal .pro-shortcut-badge {
+                display: none;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #modal .pro-modal-shell,
+            #modal .pro-description-item,
+            #modal .pro-field-edit-btn,
+            #modal .pro-header-btn,
+            #modal .pro-close-btn {
+                transition: none !important;
+            }
+        }
+    </style>
+
 </head>
 <body class="pb-32">
 
@@ -774,11 +1702,57 @@
                 <input type="hidden" id="form-id">
                 <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">PEÇA</label><input id="form-veiculo" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód Original</label><input id="form-cod-original" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
-                    <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód Genérico</label><input id="form-cod-generico" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
-                    <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Aplicação</label><input id="form-aplicacao" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
-                    <div><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Marca</label><input id="form-marca" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
-                    <div class="md:col-span-2"><label class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód de Barras</label><input id="form-cod-barras" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase"></div>
+                    <div class="md:col-span-2">
+                        <span class="text-[9px] font-black uppercase text-cyan-500 mb-2 block tracking-widest">Inserir informação no card</span>
+                        <div class="extra-field-picker">
+                            <button type="button" id="btn-add-cod-original" class="btn-add-extra" onclick="mostrarCampoExtra('cod-original')">+ Cód Original</button>
+                            <button type="button" id="btn-add-cod-generico" class="btn-add-extra" onclick="mostrarCampoExtra('cod-generico')">+ Cód Genérico</button>
+                            <button type="button" id="btn-add-aplicacao" class="btn-add-extra" onclick="mostrarCampoExtra('aplicacao')">+ Aplicação</button>
+                            <button type="button" id="btn-add-marca" class="btn-add-extra" onclick="mostrarCampoExtra('marca')">+ Marca</button>
+                            <button type="button" id="btn-add-cod-barras" class="btn-add-extra" onclick="mostrarCampoExtra('cod-barras')">+ Cód de Barras</button>
+                        </div>
+                    </div>
+
+                    <div id="extra-field-cod-original" class="extra-form-field" hidden>
+                        <label for="form-cod-original" class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód Original</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="form-cod-original" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase">
+                            <button type="button" onclick="removerCampoExtra('cod-original')" class="btn-remove-field" aria-label="Remover Código Original"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        </div>
+                    </div>
+
+                    <div id="extra-field-cod-generico" class="extra-form-field" hidden>
+                        <label for="form-cod-generico" class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód Genérico</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="form-cod-generico" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase">
+                            <button type="button" onclick="removerCampoExtra('cod-generico')" class="btn-remove-field" aria-label="Remover Código Genérico"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        </div>
+                    </div>
+
+                    <div id="extra-field-aplicacao" class="extra-form-field" hidden>
+                        <label for="form-aplicacao" class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Aplicação</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="form-aplicacao" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase">
+                            <button type="button" onclick="removerCampoExtra('aplicacao')" class="btn-remove-field" aria-label="Remover Aplicação"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        </div>
+                    </div>
+
+                    <div id="extra-field-marca" class="extra-form-field" hidden>
+                        <label for="form-marca" class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Marca</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="form-marca" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase">
+                            <button type="button" onclick="removerCampoExtra('marca')" class="btn-remove-field" aria-label="Remover Marca"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        </div>
+                    </div>
+
+                    <div id="extra-field-cod-barras" class="extra-form-field md:col-span-2" hidden>
+                        <label for="form-cod-barras" class="text-[9px] font-black uppercase text-slate-500 mb-2 block tracking-widest">Cód de Barras</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="form-cod-barras" autocomplete="off" class="w-full bg-slate-950 border border-slate-800 p-4 rounded-xl outline-none text-white font-bold uppercase">
+                            <button type="button" onclick="removerCampoExtra('cod-barras')" class="btn-remove-field" aria-label="Remover Código de Barras"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" /></svg></button>
+                        </div>
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="toggle-container">
                             <input type="checkbox" id="form-mostrar-extras" class="hidden" checked>
@@ -1243,6 +2217,51 @@
             div.querySelector('input').focus();
         };
 
+        const camposExtrasFormulario = {
+            'cod-original': 'form-cod-original',
+            'cod-generico': 'form-cod-generico',
+            'aplicacao': 'form-aplicacao',
+            'marca': 'form-marca',
+            'cod-barras': 'form-cod-barras'
+        };
+
+        window.mostrarCampoExtra = (campo) => {
+            const inputId = camposExtrasFormulario[campo];
+            const wrapper = document.getElementById(`extra-field-${campo}`);
+            const botao = document.getElementById(`btn-add-${campo}`);
+            const input = inputId ? document.getElementById(inputId) : null;
+            if (!wrapper || !botao || !input) return;
+
+            wrapper.hidden = false;
+            botao.hidden = true;
+            input.focus();
+        };
+
+        window.removerCampoExtra = (campo) => {
+            const inputId = camposExtrasFormulario[campo];
+            const wrapper = document.getElementById(`extra-field-${campo}`);
+            const botao = document.getElementById(`btn-add-${campo}`);
+            const input = inputId ? document.getElementById(inputId) : null;
+            if (!wrapper || !botao || !input) return;
+
+            input.value = '';
+            wrapper.hidden = true;
+            botao.hidden = false;
+        };
+
+        function atualizarCamposExtrasFormulario() {
+            Object.entries(camposExtrasFormulario).forEach(([campo, inputId]) => {
+                const wrapper = document.getElementById(`extra-field-${campo}`);
+                const botao = document.getElementById(`btn-add-${campo}`);
+                const input = document.getElementById(inputId);
+                if (!wrapper || !botao || !input) return;
+
+                const temValor = input.value.trim() !== '';
+                wrapper.hidden = !temValor;
+                botao.hidden = temValor;
+            });
+        }
+
         window.abrirModal = (id = null) => {
             document.getElementById('modal-success-overlay').style.display = 'none';
             const item = id ? dadosOriginais.find(d => d.id === id) : {id: "", veiculo: "", descricao: "", obs: "", codOriginal: "", codGenerico: "", aplicacao: "", marca: "", codBarras: "", mostrarExtras: true};
@@ -1254,6 +2273,7 @@
             document.getElementById('form-aplicacao').value = item.aplicacao || "";
             document.getElementById('form-marca').value = item.marca || "";
             document.getElementById('form-cod-barras').value = item.codBarras || "";
+            atualizarCamposExtrasFormulario();
 
             // mantém seu toggle antigo intacto
             // (não controla mais o card diretamente; serve como fallback e também para “tudo ligado/desligado” ao criar)
@@ -1478,5 +2498,477 @@
             }
         })();
     </script>
+
+    <!-- =====================================================================
+         INTERACOES DO UPGRADE PROFISSIONAL
+         Executado depois do modulo principal para manter a logica original.
+    ====================================================================== -->
+    <script id="professional-modal-upgrade-script">
+        (() => {
+            const icon = (name, size = 18) => {
+                const icons = {
+                    form: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg>`,
+                    main: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h10"/></svg>`,
+                    code: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>`,
+                    edit: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`,
+                    trash: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>`,
+                    plus: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>`,
+                    expand: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/></svg>`,
+                    collapse: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M16 3v3a2 2 0 0 0 2 2h3"/><path d="M8 21v-3a2 2 0 0 0-2-2H3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/></svg>`,
+                    resize: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 15l6 6"/><path d="M10 20l10-10"/><path d="M16 20l4-4"/></svg>`,
+                    save: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>`
+                };
+                return icons[name] || '';
+            };
+
+            const makePanelHeading = (type, title, helper, actionButton = null) => {
+                const heading = document.createElement('div');
+                heading.className = 'pro-panel-heading';
+
+                const main = document.createElement('div');
+                main.className = 'pro-panel-heading-main';
+                main.innerHTML = `
+                    <span class="pro-panel-icon">${icon(type, 17)}</span>
+                    <span>
+                        <span class="pro-panel-title">${title}</span>
+                        <span class="pro-panel-helper" style="display:block">${helper}</span>
+                    </span>
+                `;
+                heading.appendChild(main);
+                if (actionButton) heading.appendChild(actionButton);
+                return heading;
+            };
+
+            const renumberDescriptions = () => {
+                const rows = Array.from(document.querySelectorAll('#container-descricoes .pro-description-item'));
+                rows.forEach((row, index) => {
+                    const label = row.querySelector('.pro-description-index');
+                    if (label) label.textContent = `Descrição ${String(index + 1).padStart(2, '0')}`;
+                });
+            };
+
+            const updateDescriptionCounter = (textarea) => {
+                const counter = textarea.closest('.pro-description-item')?.querySelector('.pro-char-counter');
+                if (counter) counter.textContent = `${textarea.value.length} caracteres`;
+            };
+
+            const createProfessionalDescription = (value = '') => {
+                const container = document.getElementById('container-descricoes');
+                if (!container) return;
+
+                const row = document.createElement('div');
+                row.className = 'input-dinamico-group pro-description-item';
+
+                const header = document.createElement('div');
+                header.className = 'pro-description-item-header';
+
+                const indexLabel = document.createElement('span');
+                indexLabel.className = 'pro-description-index';
+
+                const actions = document.createElement('div');
+                actions.className = 'pro-description-actions';
+
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'pro-mini-btn';
+                editButton.setAttribute('aria-label', 'Editar descrição');
+                editButton.title = 'Editar descrição';
+                editButton.innerHTML = `${icon('edit', 14)}<span>Editar</span>`;
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'pro-mini-btn pro-danger';
+                removeButton.setAttribute('aria-label', 'Excluir descrição');
+                removeButton.title = 'Excluir descrição';
+                removeButton.innerHTML = `${icon('trash', 14)}<span>Excluir</span>`;
+
+                actions.append(editButton, removeButton);
+                header.append(indexLabel, actions);
+
+                const textarea = document.createElement('textarea');
+                textarea.className = 'input-desc-item pro-description-textarea';
+                textarea.rows = 3;
+                textarea.placeholder = 'DIGITE UMA DESCRIÇÃO CLARA E COMPLETA...';
+                textarea.value = value;
+                textarea.autocomplete = 'off';
+                textarea.spellcheck = true;
+                textarea.setAttribute('aria-label', 'Descrição do item');
+
+                const footer = document.createElement('div');
+                footer.className = 'pro-description-item-footer';
+                footer.innerHTML = `
+                    <span class="pro-resize-hint">${icon('resize', 12)} Arraste o canto para redimensionar</span>
+                    <span class="pro-char-counter">0 caracteres</span>
+                `;
+
+                editButton.addEventListener('click', () => {
+                    row.classList.add('is-editing');
+                    textarea.focus();
+                    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+                });
+
+                removeButton.addEventListener('click', () => {
+                    const allRows = container.querySelectorAll('.pro-description-item');
+                    if (allRows.length <= 1) {
+                        textarea.value = '';
+                        updateDescriptionCounter(textarea);
+                        textarea.focus();
+                        return;
+                    }
+                    row.remove();
+                    renumberDescriptions();
+                });
+
+                textarea.addEventListener('focus', () => row.classList.add('is-editing'));
+                textarea.addEventListener('blur', () => row.classList.remove('is-editing'));
+                textarea.addEventListener('input', () => updateDescriptionCounter(textarea));
+
+                row.append(header, textarea, footer);
+                container.appendChild(row);
+                renumberDescriptions();
+                updateDescriptionCounter(textarea);
+
+                requestAnimationFrame(() => {
+                    const ideal = Math.min(Math.max(textarea.scrollHeight, 82), 220);
+                    textarea.style.height = `${ideal}px`;
+                    textarea.focus();
+                    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+                    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                });
+            };
+
+            const initializeUpgrade = () => {
+                if (window.__professionalModalUpgradeReady) return;
+
+                const modal = document.getElementById('modal');
+                const shell = modal?.querySelector(':scope > div');
+                const body = shell?.querySelector('.form-scroll');
+                const title = document.getElementById('modalTitle');
+                const formId = document.getElementById('form-id');
+                const pieceInput = document.getElementById('form-veiculo');
+                const descriptionsContainer = document.getElementById('container-descricoes');
+                const observation = document.getElementById('form-obs');
+                const extrasToggle = document.getElementById('form-mostrar-extras');
+
+                if (!modal || !shell || !body || !title || !formId || !pieceInput || !descriptionsContainer || !observation || !extrasToggle) {
+                    return;
+                }
+
+                window.__professionalModalUpgradeReady = true;
+                modal.setAttribute('role', 'dialog');
+                modal.setAttribute('aria-modal', 'true');
+                modal.setAttribute('aria-labelledby', 'modalTitle');
+                shell.classList.add('pro-modal-shell');
+                body.classList.add('pro-modal-body');
+
+                /* Cabeçalho */
+                const header = title.closest('.flex.justify-between.items-center');
+                if (header) {
+                    header.classList.add('pro-modal-header');
+                    const closeButton = header.querySelector('button[onclick="fecharModal()"]');
+                    closeButton?.classList.add('pro-close-btn');
+
+                    const titleArea = document.createElement('div');
+                    titleArea.className = 'pro-title-area';
+                    const titleMark = document.createElement('span');
+                    titleMark.className = 'pro-title-mark';
+                    titleMark.innerHTML = icon('form', 21);
+                    const titleCopy = document.createElement('div');
+                    titleCopy.className = 'pro-title-copy';
+                    const subtitle = document.createElement('p');
+                    subtitle.className = 'pro-modal-subtitle';
+                    subtitle.textContent = 'Descrição, observação e códigos organizados em um único formulário.';
+
+                    title.parentNode.insertBefore(titleArea, title);
+                    titleCopy.append(title, subtitle);
+                    titleArea.append(titleMark, titleCopy);
+
+                    const headerActions = document.createElement('div');
+                    headerActions.className = 'pro-header-actions';
+                    const expandButton = document.createElement('button');
+                    expandButton.type = 'button';
+                    expandButton.className = 'pro-header-btn';
+                    expandButton.title = 'Expandir formulário';
+                    expandButton.setAttribute('aria-label', 'Expandir formulário');
+                    expandButton.setAttribute('aria-pressed', 'false');
+                    expandButton.innerHTML = icon('expand', 18);
+                    expandButton.addEventListener('click', () => {
+                        const expanded = shell.classList.toggle('is-expanded');
+                        expandButton.setAttribute('aria-pressed', String(expanded));
+                        expandButton.title = expanded ? 'Restaurar tamanho' : 'Expandir formulário';
+                        expandButton.setAttribute('aria-label', expanded ? 'Restaurar tamanho do formulário' : 'Expandir formulário');
+                        expandButton.innerHTML = icon(expanded ? 'collapse' : 'expand', 18);
+                    });
+
+                    if (closeButton) {
+                        header.insertBefore(headerActions, closeButton);
+                        headerActions.append(expandButton, closeButton);
+                    } else {
+                        header.appendChild(headerActions);
+                        headerActions.appendChild(expandButton);
+                    }
+                }
+
+                /* Reorganiza sem apagar nenhum campo original */
+                const pieceBlock = pieceInput.closest('div');
+                const descriptionBlock = descriptionsContainer.parentElement;
+                const observationBlock = observation.parentElement;
+                const extrasGrid = extrasToggle.closest('.grid');
+
+                const layout = document.createElement('div');
+                layout.className = 'pro-form-layout';
+                const primaryPanel = document.createElement('section');
+                primaryPanel.className = 'pro-primary-panel';
+                primaryPanel.setAttribute('aria-label', 'Informações principais');
+                const metaPanel = document.createElement('aside');
+                metaPanel.className = 'pro-meta-panel';
+                metaPanel.setAttribute('aria-label', 'Códigos e aplicação');
+
+                body.insertBefore(layout, formId.nextSibling);
+                layout.append(primaryPanel, metaPanel);
+
+                const goToObservationButton = document.createElement('button');
+                goToObservationButton.type = 'button';
+                goToObservationButton.className = 'pro-edit-all-btn';
+                goToObservationButton.innerHTML = `${icon('edit', 13)} Ver observação`;
+                goToObservationButton.addEventListener('click', () => {
+                    observationBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => observation.focus(), 260);
+                });
+
+                primaryPanel.appendChild(makePanelHeading(
+                    'main',
+                    'Informações principais',
+                    'A descrição e a observação ficam logo abaixo da peça.',
+                    goToObservationButton
+                ));
+
+                pieceBlock.classList.add('pro-piece-block');
+                const pieceHelper = document.createElement('p');
+                pieceHelper.className = 'pro-inline-helper';
+                pieceHelper.textContent = 'Use um nome objetivo para localizar este cadastro com facilidade.';
+                pieceBlock.appendChild(pieceHelper);
+
+                descriptionBlock.classList.add('pro-description-block', 'pro-section-card');
+                const descriptionLabel = descriptionBlock.querySelector('label');
+                const addDescriptionButton = descriptionBlock.querySelector('.btn-add-desc');
+                const descriptionTitleRow = document.createElement('div');
+                descriptionTitleRow.className = 'pro-section-title-row';
+                const descriptionTitleCopy = document.createElement('div');
+                descriptionTitleCopy.className = 'pro-section-title-copy';
+                if (descriptionLabel) {
+                    descriptionLabel.classList.add('pro-section-label');
+                    descriptionTitleCopy.appendChild(descriptionLabel);
+                }
+                const descriptionHelper = document.createElement('p');
+                descriptionHelper.className = 'pro-section-description';
+                descriptionHelper.textContent = 'Adicione quantas descrições precisar. Cada campo pode ser redimensionado.';
+                descriptionTitleCopy.appendChild(descriptionHelper);
+                if (addDescriptionButton) {
+                    addDescriptionButton.classList.add('pro-add-description');
+                    addDescriptionButton.innerHTML = `${icon('plus', 15)} Adicionar descrição`;
+                    descriptionTitleRow.append(descriptionTitleCopy, addDescriptionButton);
+                } else {
+                    descriptionTitleRow.appendChild(descriptionTitleCopy);
+                }
+                descriptionBlock.insertBefore(descriptionTitleRow, descriptionsContainer);
+
+                observationBlock.classList.add('pro-observation-block', 'pro-section-card');
+                const observationLabel = observationBlock.querySelector('label');
+                const observationTitleRow = document.createElement('div');
+                observationTitleRow.className = 'pro-section-title-row';
+                const observationTitleCopy = document.createElement('div');
+                observationTitleCopy.className = 'pro-section-title-copy';
+                if (observationLabel) {
+                    observationLabel.classList.add('pro-section-label');
+                    observationTitleCopy.appendChild(observationLabel);
+                }
+                const observationHelper = document.createElement('p');
+                observationHelper.className = 'pro-section-description';
+                observationHelper.textContent = 'Registre alertas, compatibilidades ou detalhes complementares.';
+                observationTitleCopy.appendChild(observationHelper);
+                const editObservationButton = document.createElement('button');
+                editObservationButton.type = 'button';
+                editObservationButton.className = 'pro-mini-btn';
+                editObservationButton.innerHTML = `${icon('edit', 14)}<span>Editar observação</span>`;
+                editObservationButton.addEventListener('click', () => {
+                    observation.focus();
+                    observation.setSelectionRange(observation.value.length, observation.value.length);
+                });
+                observationTitleRow.append(observationTitleCopy, editObservationButton);
+                observationBlock.insertBefore(observationTitleRow, observation);
+                observation.rows = 5;
+                observation.placeholder = 'INFORMAÇÕES COMPLEMENTARES, ALERTAS OU OBSERVAÇÕES...';
+
+                const observationFooter = document.createElement('div');
+                observationFooter.className = 'pro-observation-footer';
+                observationFooter.innerHTML = `
+                    <span class="pro-resize-hint">${icon('resize', 12)} Campo redimensionável</span>
+                    <span class="pro-observation-counter">0 caracteres</span>
+                `;
+                observationBlock.appendChild(observationFooter);
+                const updateObservationCounter = () => {
+                    const counter = observationFooter.querySelector('.pro-observation-counter');
+                    if (counter) counter.textContent = `${observation.value.length} caracteres`;
+                };
+                observation.addEventListener('input', updateObservationCounter);
+                updateObservationCounter();
+
+                primaryPanel.append(pieceBlock, descriptionBlock, observationBlock);
+
+                const editAllButton = document.createElement('button');
+                editAllButton.type = 'button';
+                editAllButton.className = 'pro-edit-all-btn';
+                editAllButton.innerHTML = `${icon('edit', 13)} Editar códigos`;
+                editAllButton.addEventListener('click', () => {
+                    const visibleInput = Array.from(metaPanel.querySelectorAll('.pro-extra-field input'))
+                        .find((input) => !input.closest('.extra-form-field')?.hidden);
+                    if (visibleInput) {
+                        visibleInput.focus();
+                        visibleInput.select();
+                    } else {
+                        metaPanel.querySelector('.btn-add-extra:not([hidden])')?.focus();
+                    }
+                });
+
+                metaPanel.appendChild(makePanelHeading(
+                    'code',
+                    'Códigos e aplicação',
+                    'Edite os campos e confira abaixo o valor completo, sem cortes.',
+                    editAllButton
+                ));
+                metaPanel.appendChild(extrasGrid);
+
+                const picker = extrasGrid.querySelector('.extra-field-picker');
+                if (picker && !picker.previousElementSibling?.classList.contains('pro-meta-picker-copy')) {
+                    const pickerCopy = document.createElement('p');
+                    pickerCopy.className = 'pro-meta-picker-copy';
+                    pickerCopy.textContent = 'Escolha os campos adicionais que deseja incluir neste cadastro.';
+                    picker.parentElement.insertBefore(pickerCopy, picker);
+                }
+
+                /* Botao de editar e visualizacao completa em cada codigo */
+                const fieldDefinitions = [
+                    ['form-cod-original', 'código original'],
+                    ['form-cod-generico', 'código genérico'],
+                    ['form-aplicacao', 'aplicação'],
+                    ['form-marca', 'marca'],
+                    ['form-cod-barras', 'código de barras']
+                ];
+
+                fieldDefinitions.forEach(([inputId, fieldName]) => {
+                    const input = document.getElementById(inputId);
+                    const wrapper = input?.closest('.extra-form-field');
+                    const row = input?.parentElement;
+                    if (!input || !wrapper || !row) return;
+
+                    wrapper.classList.add('pro-extra-field');
+                    input.title = input.value || `Editar ${fieldName}`;
+
+                    const removeButton = row.querySelector('.btn-remove-field');
+                    const editButton = document.createElement('button');
+                    editButton.type = 'button';
+                    editButton.className = 'pro-field-edit-btn';
+                    editButton.title = `Editar ${fieldName}`;
+                    editButton.setAttribute('aria-label', `Editar ${fieldName}`);
+                    editButton.innerHTML = `${icon('edit', 15)}<span>Editar</span>`;
+                    editButton.addEventListener('click', () => {
+                        wrapper.classList.add('is-editing');
+                        input.focus();
+                        input.select();
+                    });
+
+                    if (removeButton) row.insertBefore(editButton, removeButton);
+                    else row.appendChild(editButton);
+
+                    const preview = document.createElement('div');
+                    preview.className = 'pro-value-preview';
+                    preview.innerHTML = `
+                        <span class="pro-value-preview-label">Visualização completa</span>
+                        <strong class="pro-value-preview-value"></strong>
+                    `;
+                    wrapper.appendChild(preview);
+                    const previewValue = preview.querySelector('.pro-value-preview-value');
+
+                    const updatePreview = () => {
+                        const value = input.value.trim();
+                        input.title = value || `Editar ${fieldName}`;
+                        if (previewValue) previewValue.textContent = value;
+                        preview.classList.toggle('has-value', value.length > 0);
+                    };
+                    input.addEventListener('input', updatePreview);
+                    input.addEventListener('focus', () => wrapper.classList.add('is-editing'));
+                    input.addEventListener('blur', () => wrapper.classList.remove('is-editing'));
+                    updatePreview();
+                });
+
+                /* Rodapé fixo com acoes sempre visiveis */
+                const saveButton = shell.querySelector('button[onclick="salvar()"]');
+                const footer = saveButton?.parentElement;
+                if (footer && saveButton) {
+                    footer.classList.add('pro-modal-footer');
+                    saveButton.classList.add('pro-save-btn');
+                    const cancelButton = footer.querySelector('button[onclick="fecharModal()"]');
+                    cancelButton?.classList.add('pro-cancel-btn');
+
+                    const footerCopy = document.createElement('div');
+                    footerCopy.className = 'pro-footer-copy';
+                    footerCopy.innerHTML = `
+                        <div class="pro-footer-title">Revise antes de salvar</div>
+                        <div class="pro-footer-helper">Todos os recursos originais continuam ativos.</div>
+                    `;
+                    const footerActions = document.createElement('div');
+                    footerActions.className = 'pro-footer-actions';
+                    footer.insertBefore(footerCopy, footer.firstChild);
+                    footerActions.append(saveButton);
+                    if (cancelButton) footerActions.append(cancelButton);
+                    footer.appendChild(footerActions);
+
+                    if (!saveButton.querySelector('.pro-shortcut-badge')) {
+                        const originalText = saveButton.textContent.trim();
+                        saveButton.innerHTML = `${icon('save', 17)}<span>${originalText}</span><span class="pro-shortcut-badge">Ctrl + Enter</span>`;
+                    }
+                }
+
+                /* Substitui apenas a criação visual das descrições; o salvamento original continua igual. */
+                window.adicionarCampoDescricao = createProfessionalDescription;
+                window.renumerarDescricoesProfissionais = renumberDescriptions;
+
+                /* Quando o modal abre, garante topo, contadores e previews atualizados. */
+                const originalOpenModal = window.abrirModal;
+                if (typeof originalOpenModal === 'function') {
+                    window.abrirModal = (...args) => {
+                        originalOpenModal(...args);
+                        requestAnimationFrame(() => {
+                            body.scrollTop = 0;
+                            renumberDescriptions();
+                            document.querySelectorAll('#container-descricoes .pro-description-textarea').forEach(updateDescriptionCounter);
+                            observation.dispatchEvent(new Event('input', { bubbles: true }));
+                            fieldDefinitions.forEach(([inputId]) => {
+                                const input = document.getElementById(inputId);
+                                input?.dispatchEvent(new Event('input', { bubbles: true }));
+                            });
+                            if (!args[0]) pieceInput.focus();
+                        });
+                    };
+                }
+
+                /* Atalho adicional: Alt+N inclui uma nova descrição com o modal aberto. */
+                document.addEventListener('keydown', (event) => {
+                    if (event.altKey && event.key.toLowerCase() === 'n' && modal.style.display === 'flex') {
+                        event.preventDefault();
+                        createProfessionalDescription('');
+                    }
+                });
+            };
+
+            if (document.readyState === 'loading') {
+                window.addEventListener('DOMContentLoaded', initializeUpgrade, { once: true });
+            } else {
+                setTimeout(initializeUpgrade, 0);
+            }
+        })();
+    </script>
+
 </body>
 </html>
