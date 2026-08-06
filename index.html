@@ -4096,6 +4096,66 @@
                 transition: none !important;
             }
         }
+
+        /* Controles flutuantes: nao ocupam espaco da grade e somem durante a pesquisa. */
+        #enterprise-view-toolbar {
+            position: fixed;
+            right: 76px;
+            bottom: 22px;
+            width: auto;
+            margin: 0;
+            padding: 6px;
+            border-radius: 15px;
+            z-index: 48;
+            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+        }
+
+        #enterprise-view-toolbar .enterprise-toolbar-main {
+            display: none;
+        }
+
+        #enterprise-view-toolbar .enterprise-toolbar-controls,
+        #enterprise-view-toolbar .enterprise-view-switch {
+            width: auto;
+            flex-wrap: nowrap;
+        }
+
+        #enterprise-view-toolbar .enterprise-view-option,
+        #enterprise-view-toolbar .enterprise-fit-button {
+            width: 40px;
+            min-width: 40px;
+            height: 40px;
+            min-height: 40px;
+            padding: 0;
+        }
+
+        #enterprise-view-toolbar .enterprise-view-option span,
+        #enterprise-view-toolbar .enterprise-fit-button span {
+            display: none;
+        }
+
+        #enterprise-view-toolbar.is-searching {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(12px);
+        }
+
+        @media (max-width: 560px) {
+            #enterprise-view-toolbar {
+                right: 66px;
+                bottom: 14px;
+                max-width: calc(100vw - 82px);
+            }
+
+            #enterprise-view-toolbar .enterprise-view-option,
+            #enterprise-view-toolbar .enterprise-fit-button {
+                width: 36px;
+                min-width: 36px;
+                height: 36px;
+                min-height: 36px;
+            }
+        }
     </style>
 
     <script id="enterprise-visualization-upgrade-script">
@@ -4780,6 +4840,7 @@
 
             const enhanceAll = () => {
                 if (!state.list) return;
+                updateToolbarSearchState();
                 applyMode();
                 if (getContext() === 'veiculos') {
                     state.list.querySelectorAll('.manual2-card').forEach(enhanceCard);
@@ -4796,6 +4857,12 @@
                     state.enhanceFrame = 0;
                     enhanceAll();
                 });
+            };
+
+            const updateToolbarSearchState = () => {
+                const hasSearch = Boolean(document.getElementById('inputPesquisa')?.value.trim());
+                state.toolbar?.classList.toggle('is-searching', hasSearch);
+                state.toolbar?.setAttribute('aria-hidden', hasSearch ? 'true' : 'false');
             };
 
             const layoutCards = () => {
