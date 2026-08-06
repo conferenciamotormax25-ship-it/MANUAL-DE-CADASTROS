@@ -2970,5 +2970,2562 @@
         })();
     </script>
 
+
+    <!-- =====================================================================
+         UPGRADE ENTERPRISE DE VISUALIZACAO
+         Camada adicional: organiza os cards sem remover recursos existentes.
+    ====================================================================== -->
+    <style id="enterprise-visualization-upgrade">
+        :root {
+            --enterprise-row-size: 8px;
+            --enterprise-grid-gap: 20px;
+            --enterprise-toolbar-surface: rgba(7, 15, 30, 0.82);
+            --enterprise-toolbar-line: rgba(125, 211, 252, 0.20);
+            --enterprise-focus: #60a5fa;
+        }
+
+        /* Barra de visualizacao: padrao de produtos corporativos modernos */
+        #enterprise-view-toolbar {
+            width: min(1840px, calc(100% - 64px));
+            margin: 28px auto 0;
+            padding: 14px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 18px;
+            border: 1px solid var(--enterprise-toolbar-line);
+            border-radius: 18px;
+            background:
+                linear-gradient(135deg, rgba(15, 23, 42, 0.88), rgba(5, 13, 27, 0.84)),
+                radial-gradient(520px circle at 8% 0%, rgba(34, 211, 238, 0.10), transparent 55%);
+            box-shadow: 0 18px 50px -34px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255,255,255,0.02) inset;
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            position: relative;
+            z-index: 35;
+        }
+
+        #enterprise-view-toolbar::before {
+            content: '';
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            top: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.75), transparent);
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .enterprise-toolbar-main,
+        .enterprise-toolbar-controls,
+        .enterprise-toolbar-copy,
+        .enterprise-view-switch {
+            display: flex;
+            align-items: center;
+        }
+
+        .enterprise-toolbar-main {
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .enterprise-toolbar-icon {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            border-radius: 13px;
+            display: grid;
+            place-items: center;
+            color: #cffafe;
+            background: linear-gradient(145deg, rgba(8, 145, 178, 0.42), rgba(37, 99, 235, 0.32));
+            border: 1px solid rgba(103, 232, 249, 0.28);
+            box-shadow: 0 10px 24px -16px rgba(34, 211, 238, 0.9);
+        }
+
+        .enterprise-toolbar-copy {
+            align-items: flex-start;
+            flex-direction: column;
+            gap: 3px;
+            min-width: 0;
+        }
+
+        .enterprise-toolbar-title-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .enterprise-toolbar-title {
+            font-family: var(--font-display);
+            color: #f8fafc;
+            font-size: 0.78rem;
+            font-weight: 800;
+            letter-spacing: 0.01em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-context-badge {
+            padding: 4px 7px;
+            border-radius: 7px;
+            color: #67e8f9;
+            background: rgba(8, 145, 178, 0.12);
+            border: 1px solid rgba(34, 211, 238, 0.20);
+            font-size: 0.52rem;
+            font-weight: 900;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        #enterprise-view-summary {
+            max-width: 620px;
+            color: #94a3b8;
+            font-size: 0.67rem;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        .enterprise-toolbar-controls {
+            justify-content: flex-end;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .enterprise-view-switch {
+            padding: 4px;
+            gap: 4px;
+            border-radius: 13px;
+            background: rgba(2, 6, 23, 0.62);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+        }
+
+        .enterprise-view-switch.is-hidden {
+            display: none;
+        }
+
+        .enterprise-view-option,
+        .enterprise-fit-button {
+            min-height: 38px;
+            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            white-space: nowrap;
+            font-family: var(--font-display);
+            font-size: 0.56rem;
+            font-weight: 800;
+            letter-spacing: 0.035em;
+            text-transform: uppercase;
+            transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .enterprise-view-option {
+            min-width: 102px;
+            padding: 0 12px;
+            color: #94a3b8;
+            border: 1px solid transparent;
+            background: transparent;
+        }
+
+        .enterprise-view-option:hover {
+            color: #e2e8f0;
+            background: rgba(30, 41, 59, 0.82);
+        }
+
+        .enterprise-view-option.is-active {
+            color: #eff6ff;
+            border-color: rgba(96, 165, 250, 0.32);
+            background: linear-gradient(145deg, rgba(37, 99, 235, 0.78), rgba(29, 78, 216, 0.62));
+            box-shadow: 0 8px 20px -14px rgba(59, 130, 246, 0.95);
+        }
+
+        .enterprise-fit-button {
+            padding: 0 14px;
+            color: #cbd5e1;
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            background: rgba(15, 23, 42, 0.68);
+        }
+
+        .enterprise-fit-button:hover {
+            color: #fff;
+            border-color: rgba(34, 211, 238, 0.42);
+            background: rgba(8, 145, 178, 0.16);
+            box-shadow: 0 8px 20px -15px rgba(34, 211, 238, 0.9);
+            transform: translateY(-1px);
+        }
+
+        .enterprise-view-option:focus-visible,
+        .enterprise-fit-button:focus-visible,
+        .enterprise-quick-view:focus-visible,
+        .enterprise-view-main:focus-visible,
+        .enterprise-detail-close:focus-visible,
+        .enterprise-detail-action:focus-visible,
+        .enterprise-detail-copy:focus-visible,
+        .enterprise-generic-copy:focus-visible {
+            outline: 3px solid rgba(96, 165, 250, 0.42);
+            outline-offset: 2px;
+        }
+
+        /* Grade inteligente: altura real de cada card e encaixe automatico */
+        #listaItens.enterprise-view-grid,
+        #listaItens.enterprise-view-compact {
+            display: grid !important;
+            align-items: start !important;
+            grid-auto-rows: var(--enterprise-row-size) !important;
+            grid-auto-flow: row;
+            margin-top: 22px !important;
+        }
+
+        #listaItens.enterprise-view-grid {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)) !important;
+            column-gap: var(--enterprise-grid-gap) !important;
+            row-gap: var(--enterprise-grid-gap) !important;
+        }
+
+        #listaItens.enterprise-view-compact {
+            grid-template-columns: repeat(auto-fill, minmax(min(100%, 275px), 1fr)) !important;
+            column-gap: 14px !important;
+            row-gap: 14px !important;
+        }
+
+        #listaItens.enterprise-view-list {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 14px !important;
+            width: min(1540px, calc(100% - 36px));
+            max-width: 1540px !important;
+            margin: 22px auto 0 !important;
+            padding-left: 0 !important;
+            padding-right: 0 !important;
+        }
+
+        #listaItens.enterprise-view-grid .manual2-card,
+        #listaItens.enterprise-view-compact .manual2-card,
+        #listaItens.enterprise-view-list .manual2-card {
+            height: auto;
+            align-self: start;
+            max-width: 100%;
+        }
+
+        /* Card com hierarquia visual clara e sem espacos vazios artificiais */
+        .manual2-card.enterprise-card {
+            gap: 12px;
+            border-color: rgba(71, 85, 105, 0.58);
+            background:
+                linear-gradient(180deg, rgba(10, 20, 38, 0.92), rgba(6, 15, 29, 0.94)),
+                radial-gradient(440px circle at 0 0, rgba(34, 211, 238, 0.07), transparent 58%);
+            box-shadow: 0 16px 38px -30px rgba(0, 0, 0, 0.98), 0 0 0 1px rgba(255,255,255,0.015) inset;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(59, 130, 246, 0.6) rgba(15, 23, 42, 0.22);
+        }
+
+        .manual2-card.enterprise-card:hover {
+            border-color: rgba(34, 211, 238, 0.48);
+            box-shadow: 0 22px 50px -30px rgba(34, 211, 238, 0.40), 0 0 0 1px rgba(34, 211, 238, 0.07);
+        }
+
+        .enterprise-card-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.13);
+            position: relative;
+            z-index: 2;
+        }
+
+        .enterprise-card-heading {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .enterprise-card-eyebrow {
+            color: #64748b;
+            font-family: var(--font-display);
+            font-size: 0.49rem;
+            font-weight: 800;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-card-header .manual2-title {
+            font-size: clamp(0.78rem, 1.2vw, 0.91rem);
+            line-height: 1.38;
+            overflow-wrap: anywhere;
+            text-wrap: balance;
+        }
+
+        .enterprise-card-tools {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 0 0 auto;
+        }
+
+        .enterprise-description-count {
+            min-width: 31px;
+            height: 29px;
+            padding: 0 8px;
+            border-radius: 9px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.10);
+            border: 1px solid rgba(16, 185, 129, 0.22);
+            font-size: 0.58rem;
+            font-weight: 900;
+        }
+
+        .enterprise-quick-view {
+            width: 31px;
+            height: 29px;
+            border-radius: 9px;
+            display: grid;
+            place-items: center;
+            color: #bfdbfe;
+            background: rgba(59, 130, 246, 0.10);
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            transition: transform 0.18s ease, color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        }
+
+        .enterprise-quick-view:hover {
+            color: #fff;
+            background: rgba(37, 99, 235, 0.50);
+            border-color: rgba(147, 197, 253, 0.55);
+            transform: translateY(-1px);
+        }
+
+        .enterprise-card .extra-info-grid {
+            gap: 8px;
+        }
+
+        .enterprise-card .info-chip {
+            min-width: 0;
+            min-height: 65px;
+            padding: 10px 11px;
+        }
+
+        .enterprise-card .info-chip-value {
+            padding-right: 0;
+            line-height: 1.45;
+            overflow-wrap: anywhere;
+            word-break: normal;
+        }
+
+        .enterprise-card .info-chip::after {
+            top: 5px;
+            right: 6px;
+        }
+
+        .enterprise-card .desc-container {
+            gap: 8px;
+        }
+
+        .enterprise-card .box-main {
+            min-height: 44px;
+            padding: 11px 12px;
+            line-height: 1.52;
+            word-break: normal;
+            overflow-wrap: anywhere;
+        }
+
+        .enterprise-card .box-main > span {
+            min-width: 0;
+        }
+
+        .enterprise-card .box-main[tabindex="0"]:focus-visible {
+            outline: 3px solid rgba(16, 185, 129, 0.28);
+            outline-offset: 2px;
+            border-color: rgba(52, 211, 153, 0.62);
+        }
+
+        .enterprise-card .box-sub {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            border-left-width: 3px;
+            line-height: 1.48;
+            overflow-wrap: anywhere;
+        }
+
+        .enterprise-observation-label {
+            color: #fca5a5;
+            font-family: var(--font-display);
+            font-size: 0.49rem;
+            font-style: normal;
+            font-weight: 900;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-observation-text {
+            color: #fecaca;
+            font-style: italic;
+        }
+
+        .enterprise-card .card-actions {
+            grid-template-columns: 1.1fr 1fr 1fr;
+            gap: 7px;
+        }
+
+        .enterprise-view-main {
+            background: linear-gradient(145deg, #2563eb, #1d4ed8);
+            color: #fff;
+        }
+
+        .enterprise-view-main:hover {
+            background: linear-gradient(145deg, #3b82f6, #2563eb);
+            box-shadow: 0 6px 18px -4px rgba(59, 130, 246, 0.58);
+            transform: translateY(-2px);
+        }
+
+        mark.enterprise-search-mark {
+            padding: 0 2px;
+            border-radius: 3px;
+            color: #fff;
+            background: rgba(37, 99, 235, 0.72);
+            box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.28);
+        }
+
+        /* Modo compacto: mais itens sem sacrificar leitura */
+        #listaItens.enterprise-view-compact .manual2-card.enterprise-card {
+            min-height: 150px;
+            padding: 14px;
+            gap: 9px;
+            border-radius: 14px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card-header {
+            padding-bottom: 9px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card-eyebrow {
+            display: none;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card-header .manual2-title {
+            font-size: 0.73rem;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card .info-chip {
+            min-height: 54px;
+            padding: 8px 9px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card .info-chip-label {
+            font-size: 6.8px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card .info-chip-value,
+        #listaItens.enterprise-view-compact .enterprise-card .box-main,
+        #listaItens.enterprise-view-compact .enterprise-card .box-sub {
+            font-size: 0.68rem;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card .box-main {
+            min-height: 38px;
+            padding: 9px 10px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card .action-btn {
+            height: 33px;
+            font-size: 0.52rem;
+        }
+
+        /* Modo lista: leitura horizontal de alto volume */
+        #listaItens.enterprise-view-list .manual2-card.enterprise-card {
+            width: 100%;
+            min-height: 0;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: minmax(205px, 0.72fr) minmax(0, 1.45fr) minmax(160px, 0.52fr);
+            grid-template-areas:
+                "header extras actions"
+                "header descriptions actions"
+                "header observation actions";
+            align-items: start;
+            gap: 12px 18px;
+            border-radius: 16px;
+        }
+
+        #listaItens.enterprise-view-list .enterprise-card-header {
+            grid-area: header;
+            height: 100%;
+            padding: 4px 15px 4px 0;
+            border-bottom: 0;
+            border-right: 1px solid rgba(148, 163, 184, 0.14);
+        }
+
+        #listaItens.enterprise-view-list .enterprise-card .extra-info-grid {
+            grid-area: extras;
+            grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+        }
+
+        #listaItens.enterprise-view-list .enterprise-card .desc-container {
+            grid-area: descriptions;
+        }
+
+        #listaItens.enterprise-view-list .enterprise-card .box-sub {
+            grid-area: observation;
+        }
+
+        #listaItens.enterprise-view-list .enterprise-card .card-actions {
+            grid-area: actions;
+            height: 100%;
+            margin-top: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 8px;
+            padding-left: 2px;
+        }
+
+        #listaItens.enterprise-view-list .enterprise-card .action-btn {
+            min-height: 40px;
+            width: 100%;
+        }
+
+        #listaItens.enterprise-view-list .enterprise-card .info-chip {
+            min-height: 58px;
+        }
+
+        /* Referencias genericas tambem recebem leitura corporativa */
+        #listaItens.enterprise-generic-catalog {
+            margin-top: 22px !important;
+        }
+
+        .generic-row.enterprise-generic-card {
+            grid-template-columns: minmax(230px, 1fr) minmax(260px, 1.4fr) auto;
+            gap: 18px;
+            padding: 14px 16px;
+            border-color: rgba(71, 85, 105, 0.62);
+            background: linear-gradient(135deg, rgba(10, 20, 38, 0.90), rgba(6, 15, 29, 0.90));
+        }
+
+        .enterprise-generic-field {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .enterprise-generic-label {
+            color: #64748b;
+            font-family: var(--font-display);
+            font-size: 0.49rem;
+            font-weight: 900;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-generic-value {
+            color: inherit;
+            overflow-wrap: anywhere;
+            line-height: 1.45;
+        }
+
+        .enterprise-generic-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .enterprise-generic-copy {
+            width: 40px;
+            height: 40px;
+            border-radius: 9px;
+            display: grid;
+            place-items: center;
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.14);
+            border: 1px solid rgba(16, 185, 129, 0.24);
+            transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+        }
+
+        .enterprise-generic-copy:hover {
+            color: #fff;
+            background: rgba(5, 150, 105, 0.72);
+            transform: translateY(-2px);
+        }
+
+        /* Painel lateral de visualizacao completa */
+        body.enterprise-drawer-open {
+            overflow: hidden !important;
+        }
+
+        #enterprise-detail-overlay[hidden] {
+            display: none !important;
+        }
+
+        #enterprise-detail-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 4200;
+            display: flex;
+            justify-content: flex-end;
+            background: rgba(1, 5, 14, 0.72);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            opacity: 0;
+            transition: opacity 0.24s ease;
+        }
+
+        #enterprise-detail-overlay.is-open {
+            opacity: 1;
+        }
+
+        #enterprise-detail-drawer {
+            width: min(620px, 100%);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            color: #f8fafc;
+            background:
+                radial-gradient(700px circle at 100% 0%, rgba(59, 130, 246, 0.16), transparent 45%),
+                radial-gradient(620px circle at 0 10%, rgba(34, 211, 238, 0.10), transparent 44%),
+                linear-gradient(180deg, #101a2d 0%, #07101f 100%);
+            border-left: 1px solid rgba(125, 211, 252, 0.24);
+            box-shadow: -30px 0 90px -36px rgba(0, 0, 0, 0.98);
+            transform: translateX(34px);
+            opacity: 0;
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease;
+        }
+
+        #enterprise-detail-overlay.is-open #enterprise-detail-drawer {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        .enterprise-detail-header {
+            padding: 24px 26px 20px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 18px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.15);
+            background: rgba(4, 10, 22, 0.40);
+        }
+
+        .enterprise-detail-heading {
+            min-width: 0;
+        }
+
+        .enterprise-detail-kicker {
+            display: block;
+            margin-bottom: 7px;
+            color: #67e8f9;
+            font-family: var(--font-display);
+            font-size: 0.54rem;
+            font-weight: 900;
+            letter-spacing: 0.13em;
+            text-transform: uppercase;
+        }
+
+        #enterprise-detail-title {
+            margin: 0;
+            color: #fff;
+            font-family: var(--font-display);
+            font-size: clamp(1rem, 2.4vw, 1.28rem);
+            font-weight: 900;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+            text-transform: uppercase;
+        }
+
+        #enterprise-detail-subtitle {
+            margin-top: 7px;
+            color: #94a3b8;
+            font-size: 0.70rem;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+
+        .enterprise-detail-close {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            border-radius: 13px;
+            display: grid;
+            place-items: center;
+            color: #cbd5e1;
+            background: rgba(15, 23, 42, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.18);
+            transition: transform 0.18s ease, color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        }
+
+        .enterprise-detail-close:hover {
+            color: #fff;
+            background: rgba(127, 29, 29, 0.34);
+            border-color: rgba(248, 113, 113, 0.42);
+            transform: rotate(4deg);
+        }
+
+        #enterprise-detail-content {
+            flex: 1 1 auto;
+            min-height: 0;
+            overflow-y: auto;
+            padding: 22px 26px 28px;
+            scrollbar-gutter: stable;
+        }
+
+        #enterprise-detail-content::-webkit-scrollbar {
+            width: 9px;
+        }
+
+        #enterprise-detail-content::-webkit-scrollbar-track {
+            background: rgba(2, 6, 23, 0.20);
+        }
+
+        #enterprise-detail-content::-webkit-scrollbar-thumb {
+            border: 2px solid rgba(2, 6, 23, 0.55);
+            border-radius: 99px;
+            background: linear-gradient(180deg, #22d3ee, #2563eb);
+        }
+
+        .enterprise-detail-section + .enterprise-detail-section {
+            margin-top: 22px;
+        }
+
+        .enterprise-detail-section-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 10px;
+        }
+
+        .enterprise-detail-section-title {
+            color: #cbd5e1;
+            font-family: var(--font-display);
+            font-size: 0.63rem;
+            font-weight: 900;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-detail-section-count {
+            min-width: 26px;
+            height: 24px;
+            padding: 0 7px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #bfdbfe;
+            background: rgba(59, 130, 246, 0.12);
+            border: 1px solid rgba(96, 165, 250, 0.20);
+            font-size: 0.58rem;
+            font-weight: 900;
+        }
+
+        .enterprise-detail-fields {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .enterprise-detail-field,
+        .enterprise-detail-description,
+        .enterprise-detail-observation,
+        .enterprise-detail-empty {
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            background: rgba(2, 6, 23, 0.38);
+            border-radius: 14px;
+        }
+
+        .enterprise-detail-field {
+            min-width: 0;
+            padding: 13px 13px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            position: relative;
+        }
+
+        .enterprise-detail-field-label {
+            padding-right: 34px;
+            color: #64748b;
+            font-family: var(--font-display);
+            font-size: 0.50rem;
+            font-weight: 900;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-detail-field-value {
+            color: #e2e8f0;
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            font-weight: 700;
+            line-height: 1.55;
+            overflow-wrap: anywhere;
+        }
+
+        .enterprise-detail-copy {
+            width: 29px;
+            height: 29px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            color: #94a3b8;
+            background: rgba(30, 41, 59, 0.62);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+        }
+
+        .enterprise-detail-field > .enterprise-detail-copy {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+
+        .enterprise-detail-copy:hover {
+            color: #fff;
+            background: rgba(37, 99, 235, 0.58);
+            border-color: rgba(147, 197, 253, 0.38);
+        }
+
+        .enterprise-detail-description-list {
+            display: flex;
+            flex-direction: column;
+            gap: 9px;
+        }
+
+        .enterprise-detail-description {
+            padding: 12px 12px 12px 13px;
+            display: grid;
+            grid-template-columns: 30px minmax(0, 1fr) 31px;
+            align-items: start;
+            gap: 10px;
+        }
+
+        .enterprise-detail-index {
+            width: 28px;
+            height: 28px;
+            border-radius: 9px;
+            display: grid;
+            place-items: center;
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.22);
+            font-size: 0.58rem;
+            font-weight: 900;
+        }
+
+        .enterprise-detail-description-text {
+            padding-top: 3px;
+            color: #6ee7b7;
+            font-family: var(--font-mono);
+            font-size: 0.76rem;
+            font-weight: 700;
+            line-height: 1.58;
+            overflow-wrap: anywhere;
+        }
+
+        .enterprise-detail-observation {
+            padding: 14px;
+            color: #fecaca;
+            border-left: 3px solid #ef4444;
+            font-size: 0.76rem;
+            font-style: italic;
+            font-weight: 700;
+            line-height: 1.58;
+            overflow-wrap: anywhere;
+        }
+
+        .enterprise-detail-empty {
+            padding: 18px;
+            color: #64748b;
+            text-align: center;
+            font-size: 0.68rem;
+            font-weight: 800;
+            line-height: 1.5;
+        }
+
+        .enterprise-detail-footer {
+            flex: 0 0 auto;
+            padding: 16px 20px max(16px, env(safe-area-inset-bottom));
+            display: grid;
+            grid-template-columns: 1.15fr 1fr 1fr;
+            gap: 9px;
+            border-top: 1px solid rgba(148, 163, 184, 0.15);
+            background: rgba(4, 10, 22, 0.72);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+        }
+
+        .enterprise-detail-action {
+            min-height: 44px;
+            padding: 0 12px;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 7px;
+            color: #fff;
+            font-family: var(--font-display);
+            font-size: 0.57rem;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+
+        .enterprise-detail-action:hover {
+            transform: translateY(-1px);
+        }
+
+        .enterprise-detail-action.copy-all {
+            background: linear-gradient(145deg, #0f766e, #0d9488);
+        }
+
+        .enterprise-detail-action.copy-all:hover {
+            box-shadow: 0 8px 22px -12px rgba(45, 212, 191, 0.9);
+        }
+
+        .enterprise-detail-action.edit-record {
+            background: linear-gradient(145deg, #d97706, #f59e0b);
+        }
+
+        .enterprise-detail-action.edit-record:hover {
+            box-shadow: 0 8px 22px -12px rgba(245, 158, 11, 0.9);
+        }
+
+        .enterprise-detail-action.delete-record {
+            background: linear-gradient(145deg, #dc2626, #ef4444);
+        }
+
+        .enterprise-detail-action.delete-record:hover {
+            box-shadow: 0 8px 22px -12px rgba(239, 68, 68, 0.9);
+        }
+
+        /* Toast discreto para copias e ajustes */
+        #enterprise-toast {
+            position: fixed;
+            left: 50%;
+            bottom: 28px;
+            z-index: 5000;
+            max-width: min(420px, calc(100% - 32px));
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            border-radius: 12px;
+            color: #ecfdf5;
+            background: rgba(6, 78, 59, 0.94);
+            border: 1px solid rgba(52, 211, 153, 0.34);
+            box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.95);
+            font-size: 0.70rem;
+            font-weight: 800;
+            transform: translate(-50%, 18px);
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.22s ease, opacity 0.22s ease;
+        }
+
+        #enterprise-toast.is-visible {
+            transform: translate(-50%, 0);
+            opacity: 1;
+        }
+
+        @media (max-width: 1180px) {
+            #enterprise-view-toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .enterprise-toolbar-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            #listaItens.enterprise-view-list .manual2-card.enterprise-card {
+                grid-template-columns: minmax(190px, 0.65fr) minmax(0, 1.35fr);
+                grid-template-areas:
+                    "header extras"
+                    "header descriptions"
+                    "header observation"
+                    "actions actions";
+            }
+
+            #listaItens.enterprise-view-list .enterprise-card .card-actions {
+                height: auto;
+                padding-left: 0;
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 760px) {
+            #enterprise-view-toolbar {
+                width: calc(100% - 24px);
+                margin-top: 18px;
+                padding: 13px;
+                border-radius: 16px;
+            }
+
+            .enterprise-toolbar-main {
+                align-items: flex-start;
+            }
+
+            .enterprise-toolbar-controls,
+            .enterprise-view-switch {
+                width: 100%;
+            }
+
+            .enterprise-view-switch {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+            }
+
+            .enterprise-view-switch.is-hidden {
+                display: none;
+            }
+
+            .enterprise-view-option {
+                min-width: 0;
+                padding: 0 7px;
+            }
+
+            .enterprise-fit-button {
+                width: 100%;
+            }
+
+            #listaItens.enterprise-view-grid,
+            #listaItens.enterprise-view-compact {
+                grid-template-columns: minmax(0, 1fr) !important;
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+            }
+
+            #listaItens.enterprise-view-list {
+                width: calc(100% - 24px);
+            }
+
+            #listaItens.enterprise-view-list .manual2-card.enterprise-card {
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            #listaItens.enterprise-view-list .enterprise-card-header {
+                width: 100%;
+                height: auto;
+                padding: 0 0 10px;
+                border-right: 0;
+                border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+            }
+
+            #listaItens.enterprise-view-list .enterprise-card .card-actions {
+                width: 100%;
+            }
+
+            .generic-row.enterprise-generic-card {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .enterprise-generic-actions {
+                justify-content: stretch;
+            }
+
+            .enterprise-generic-actions > * {
+                flex: 1;
+            }
+
+            .enterprise-generic-copy {
+                width: auto;
+            }
+
+            #enterprise-detail-drawer {
+                width: 100%;
+            }
+
+            .enterprise-detail-header {
+                padding: 20px 18px 17px;
+            }
+
+            #enterprise-detail-content {
+                padding: 18px;
+            }
+
+            .enterprise-detail-fields {
+                grid-template-columns: 1fr;
+            }
+
+            .enterprise-detail-footer {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .enterprise-view-option span,
+            .enterprise-fit-button span {
+                font-size: 0.50rem;
+            }
+
+            .enterprise-card .extra-info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .enterprise-card .info-chip-full {
+                grid-column: auto;
+            }
+
+            .enterprise-card .card-actions {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #enterprise-detail-overlay,
+            #enterprise-detail-drawer,
+            #enterprise-toast,
+            .enterprise-view-option,
+            .enterprise-fit-button,
+            .enterprise-quick-view,
+            .enterprise-detail-action {
+                transition: none !important;
+            }
+        }
+    </style>
+
+    <script id="enterprise-visualization-upgrade-script">
+        (() => {
+            'use strict';
+
+            const STORAGE_KEY = 'motormax.enterprise.view-mode.v1';
+            const VALID_MODES = new Set(['grid', 'compact', 'list']);
+            const MODE_LABELS = {
+                grid: 'grade confortável',
+                compact: 'grade compacta',
+                list: 'lista detalhada'
+            };
+
+            const state = {
+                mode: 'grid',
+                list: null,
+                toolbar: null,
+                drawerOverlay: null,
+                drawer: null,
+                drawerContent: null,
+                currentData: null,
+                lastFocused: null,
+                enhanceFrame: 0,
+                layoutFrame: 0,
+                toastTimer: 0,
+                closeTimer: 0,
+                observedCards: new WeakSet(),
+                resizeObserver: null
+            };
+
+            const icon = (name, size = 18) => {
+                const icons = {
+                    layout: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
+                    grid: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
+                    compact: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="5" height="5" rx="1"/><rect x="10" y="4" width="5" height="5" rx="1"/><rect x="17" y="4" width="4" height="5" rx="1"/><rect x="3" y="12" width="5" height="8" rx="1"/><rect x="10" y="12" width="5" height="8" rx="1"/><rect x="17" y="12" width="4" height="8" rx="1"/></svg>`,
+                    list: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/></svg>`,
+                    fit: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M16 3h3a2 2 0 0 1 2 2v3"/><path d="M8 21H5a2 2 0 0 1-2-2v-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><path d="M9 9h6v6H9z"/></svg>`,
+                    eye: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>`,
+                    file: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg>`,
+                    close: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6L6 18"/></svg>`,
+                    copy: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+                    edit: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`,
+                    trash: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v5"/><path d="M14 11v5"/></svg>`,
+                    check: `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>`
+                };
+                return icons[name] || '';
+            };
+
+            const getStoredMode = () => {
+                try {
+                    const stored = localStorage.getItem(STORAGE_KEY);
+                    return VALID_MODES.has(stored) ? stored : 'grid';
+                } catch (_) {
+                    return 'grid';
+                }
+            };
+
+            const setStoredMode = (mode) => {
+                try { localStorage.setItem(STORAGE_KEY, mode); } catch (_) {}
+            };
+
+            const getContext = () => {
+                const vehiclesTab = document.getElementById('tab-veiculos');
+                return vehiclesTab?.classList.contains('active') ? 'veiculos' : 'genericos';
+            };
+
+            const createElement = (tag, className, text = '') => {
+                const element = document.createElement(tag);
+                if (className) element.className = className;
+                if (text) element.textContent = text;
+                return element;
+            };
+
+            const buildToolbar = () => {
+                if (document.getElementById('enterprise-view-toolbar')) {
+                    state.toolbar = document.getElementById('enterprise-view-toolbar');
+                    return;
+                }
+
+                const toolbar = document.createElement('section');
+                toolbar.id = 'enterprise-view-toolbar';
+                toolbar.setAttribute('aria-label', 'Controles de visualização dos cadastros');
+                toolbar.innerHTML = `
+                    <div class="enterprise-toolbar-main">
+                        <span class="enterprise-toolbar-icon">${icon('layout', 20)}</span>
+                        <div class="enterprise-toolbar-copy">
+                            <div class="enterprise-toolbar-title-row">
+                                <span class="enterprise-toolbar-title">Visualização inteligente</span>
+                                <span id="enterprise-context-badge" class="enterprise-context-badge">Cadastros</span>
+                            </div>
+                            <span id="enterprise-view-summary">Organizando os registros para leitura completa.</span>
+                        </div>
+                    </div>
+                    <div class="enterprise-toolbar-controls">
+                        <div id="enterprise-view-switch" class="enterprise-view-switch" role="group" aria-label="Escolher modo de visualização">
+                            <button type="button" class="enterprise-view-option" data-view-mode="grid" aria-pressed="false" title="Grade confortável">
+                                ${icon('grid', 15)}<span>Confortável</span>
+                            </button>
+                            <button type="button" class="enterprise-view-option" data-view-mode="compact" aria-pressed="false" title="Grade compacta">
+                                ${icon('compact', 15)}<span>Compacto</span>
+                            </button>
+                            <button type="button" class="enterprise-view-option" data-view-mode="list" aria-pressed="false" title="Lista detalhada">
+                                ${icon('list', 15)}<span>Lista</span>
+                            </button>
+                        </div>
+                        <button type="button" id="enterprise-fit-cards" class="enterprise-fit-button" title="Remover tamanhos manuais e ajustar os cards ao conteúdo">
+                            ${icon('fit', 15)}<span>Ajustar cards</span>
+                        </button>
+                    </div>
+                `;
+
+                state.list.parentNode.insertBefore(toolbar, state.list);
+                state.toolbar = toolbar;
+
+                toolbar.querySelectorAll('[data-view-mode]').forEach((button) => {
+                    button.addEventListener('click', () => setMode(button.dataset.viewMode));
+                });
+
+                toolbar.querySelector('#enterprise-fit-cards')?.addEventListener('click', () => {
+                    const cards = Array.from(state.list.querySelectorAll('.manual2-card'));
+                    cards.forEach((card) => {
+                        card.style.removeProperty('width');
+                        card.style.removeProperty('height');
+                        card.style.removeProperty('grid-row-end');
+                    });
+                    scheduleLayout();
+                    showToast(cards.length ? 'Cards ajustados automaticamente ao conteúdo.' : 'A visualização já está ajustada.');
+                });
+            };
+
+            const buildDrawer = () => {
+                if (document.getElementById('enterprise-detail-overlay')) {
+                    state.drawerOverlay = document.getElementById('enterprise-detail-overlay');
+                    state.drawer = document.getElementById('enterprise-detail-drawer');
+                    state.drawerContent = document.getElementById('enterprise-detail-content');
+                    return;
+                }
+
+                const overlay = document.createElement('div');
+                overlay.id = 'enterprise-detail-overlay';
+                overlay.hidden = true;
+                overlay.setAttribute('aria-hidden', 'true');
+                overlay.innerHTML = `
+                    <aside id="enterprise-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="enterprise-detail-title" tabindex="-1">
+                        <header class="enterprise-detail-header">
+                            <div class="enterprise-detail-heading">
+                                <span id="enterprise-detail-kicker" class="enterprise-detail-kicker">Visualização completa</span>
+                                <h2 id="enterprise-detail-title">Cadastro</h2>
+                                <p id="enterprise-detail-subtitle">Todos os dados visíveis do card, sem cortes.</p>
+                            </div>
+                            <button type="button" id="enterprise-detail-close" class="enterprise-detail-close" aria-label="Fechar visualização completa" title="Fechar">
+                                ${icon('close', 19)}
+                            </button>
+                        </header>
+                        <div id="enterprise-detail-content"></div>
+                        <footer class="enterprise-detail-footer">
+                            <button type="button" id="enterprise-copy-all" class="enterprise-detail-action copy-all">
+                                ${icon('copy', 15)}<span>Copiar tudo</span>
+                            </button>
+                            <button type="button" id="enterprise-edit-record" class="enterprise-detail-action edit-record">
+                                ${icon('edit', 15)}<span>Editar cadastro</span>
+                            </button>
+                            <button type="button" id="enterprise-delete-record" class="enterprise-detail-action delete-record">
+                                ${icon('trash', 15)}<span>Excluir</span>
+                            </button>
+                        </footer>
+                    </aside>
+                `;
+                document.body.appendChild(overlay);
+
+                const toast = document.createElement('div');
+                toast.id = 'enterprise-toast';
+                toast.setAttribute('role', 'status');
+                toast.setAttribute('aria-live', 'polite');
+                toast.innerHTML = `${icon('check', 16)}<span></span>`;
+                document.body.appendChild(toast);
+
+                state.drawerOverlay = overlay;
+                state.drawer = overlay.querySelector('#enterprise-detail-drawer');
+                state.drawerContent = overlay.querySelector('#enterprise-detail-content');
+
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) closeDrawer();
+                });
+                overlay.querySelector('#enterprise-detail-close')?.addEventListener('click', closeDrawer);
+                overlay.querySelector('#enterprise-copy-all')?.addEventListener('click', copyCurrentRecord);
+                overlay.querySelector('#enterprise-edit-record')?.addEventListener('click', () => {
+                    const id = state.currentData?.id;
+                    closeDrawer(false);
+                    if (id) setTimeout(() => window.editarItem?.(id), 90);
+                });
+                overlay.querySelector('#enterprise-delete-record')?.addEventListener('click', () => {
+                    const id = state.currentData?.id;
+                    closeDrawer(false);
+                    if (id) setTimeout(() => window.excluirItem?.(id), 90);
+                });
+
+                document.addEventListener('keydown', handleDrawerKeyboard, true);
+            };
+
+            const handleDrawerKeyboard = (event) => {
+                const overlay = state.drawerOverlay;
+                if (!overlay || overlay.hidden || !overlay.classList.contains('is-open')) return;
+
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    closeDrawer();
+                    return;
+                }
+
+                if (event.key !== 'Tab') return;
+                const focusable = Array.from(state.drawer.querySelectorAll('button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'))
+                    .filter((element) => element.offsetParent !== null);
+                if (!focusable.length) return;
+
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) {
+                    event.preventDefault();
+                    last.focus();
+                } else if (!event.shiftKey && document.activeElement === last) {
+                    event.preventDefault();
+                    first.focus();
+                }
+            };
+
+            const showToast = (message) => {
+                const toast = document.getElementById('enterprise-toast');
+                if (!toast) return;
+                const text = toast.querySelector('span');
+                if (text) text.textContent = message;
+                clearTimeout(state.toastTimer);
+                toast.classList.add('is-visible');
+                state.toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2200);
+            };
+
+            const copyText = async (text, successMessage = 'Informação copiada.') => {
+                if (!text) return false;
+                try {
+                    if (navigator.clipboard?.writeText) {
+                        await navigator.clipboard.writeText(text);
+                    } else {
+                        throw new Error('Clipboard API indisponível');
+                    }
+                } catch (_) {
+                    const helper = document.createElement('textarea');
+                    helper.value = text;
+                    helper.setAttribute('readonly', '');
+                    helper.style.position = 'fixed';
+                    helper.style.opacity = '0';
+                    helper.style.pointerEvents = 'none';
+                    document.body.appendChild(helper);
+                    helper.select();
+                    try { document.execCommand('copy'); } catch (_) {}
+                    helper.remove();
+                }
+                showToast(successMessage);
+                return true;
+            };
+
+            const setMode = (mode) => {
+                if (!VALID_MODES.has(mode)) return;
+                state.mode = mode;
+                setStoredMode(mode);
+                applyMode();
+                updateSummary();
+                scheduleLayout();
+            };
+
+            const applyMode = () => {
+                if (!state.list || !state.toolbar) return;
+                const context = getContext();
+                const modeClasses = ['enterprise-view-grid', 'enterprise-view-compact', 'enterprise-view-list'];
+                const switcher = state.toolbar.querySelector('#enterprise-view-switch');
+                const badge = state.toolbar.querySelector('#enterprise-context-badge');
+
+                if (context === 'veiculos') {
+                    state.list.classList.remove('enterprise-generic-catalog');
+                    modeClasses.forEach((className) => {
+                        if (className !== `enterprise-view-${state.mode}`) state.list.classList.remove(className);
+                    });
+                    state.list.classList.add(`enterprise-view-${state.mode}`);
+                    switcher?.classList.remove('is-hidden');
+                    if (badge) badge.textContent = 'Cadastros';
+                } else {
+                    modeClasses.forEach((className) => state.list.classList.remove(className));
+                    state.list.classList.add('enterprise-generic-catalog');
+                    switcher?.classList.add('is-hidden');
+                    if (badge) badge.textContent = 'Códigos genéricos';
+                }
+
+                state.toolbar.querySelectorAll('[data-view-mode]').forEach((button) => {
+                    const active = button.dataset.viewMode === state.mode;
+                    button.classList.toggle('is-active', active);
+                    button.setAttribute('aria-pressed', String(active));
+                });
+            };
+
+            const updateSummary = () => {
+                if (!state.toolbar || !state.list) return;
+                const summary = state.toolbar.querySelector('#enterprise-view-summary');
+                if (!summary) return;
+
+                const context = getContext();
+                const total = Number.parseInt(document.getElementById('contador-total')?.textContent || '0', 10) || 0;
+                const visible = context === 'veiculos'
+                    ? state.list.querySelectorAll('.manual2-card').length
+                    : state.list.querySelectorAll('.generic-row').length;
+
+                if (context === 'veiculos') {
+                    summary.textContent = `${visible} de ${total} registros nesta página · ${MODE_LABELS[state.mode]} · altura automática e visualização completa disponíveis.`;
+                } else {
+                    summary.textContent = `${visible} de ${total} referências nesta página · linhas organizadas para comparação e cópia rápida.`;
+                }
+            };
+
+            const enhanceCard = (card) => {
+                if (!card || card.dataset.enterpriseReady === 'true') {
+                    if (card) highlightCard(card);
+                    return;
+                }
+
+                card.dataset.enterpriseReady = 'true';
+                card.classList.add('enterprise-card');
+                card.title = 'Card redimensionável. Use Visualizar para abrir todos os dados.';
+
+                const title = card.querySelector('.manual2-title');
+                const descriptions = Array.from(card.querySelectorAll('.desc-container .box-main'));
+                const id = card.id?.replace(/^card-/, '') || '';
+
+                if (title && !title.closest('.enterprise-card-header')) {
+                    const header = createElement('div', 'enterprise-card-header');
+                    const heading = createElement('div', 'enterprise-card-heading');
+                    const eyebrow = createElement('span', 'enterprise-card-eyebrow', 'Cadastro de peça');
+                    const tools = createElement('div', 'enterprise-card-tools');
+                    const count = createElement('span', 'enterprise-description-count');
+                    count.title = `${descriptions.length} descrição(ões)`;
+                    count.innerHTML = `${icon('file', 12)}<span>${descriptions.length}</span>`;
+
+                    const quickView = document.createElement('button');
+                    quickView.type = 'button';
+                    quickView.className = 'enterprise-quick-view';
+                    quickView.title = 'Visualizar cadastro completo';
+                    quickView.setAttribute('aria-label', `Visualizar cadastro completo: ${title.textContent.trim()}`);
+                    quickView.innerHTML = icon('eye', 15);
+                    quickView.addEventListener('click', (event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openDrawer(card);
+                    });
+
+                    title.parentNode.insertBefore(header, title);
+                    heading.append(eyebrow, title);
+                    tools.append(count, quickView);
+                    header.append(heading, tools);
+                }
+
+                card.querySelectorAll('.info-chip').forEach((chip) => {
+                    const label = chip.querySelector('.info-chip-label')?.textContent.trim() || 'informação';
+                    chip.setAttribute('role', 'button');
+                    chip.setAttribute('tabindex', '0');
+                    chip.setAttribute('aria-label', `Copiar ${label}`);
+                    chip.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            chip.click();
+                        }
+                    });
+                });
+
+                descriptions.forEach((description, index) => {
+                    description.setAttribute('role', 'button');
+                    description.setAttribute('tabindex', '0');
+                    description.setAttribute('aria-label', `Copiar descrição ${index + 1}`);
+                    description.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            description.click();
+                        }
+                    });
+                });
+
+                const observation = Array.from(card.children).find((child) => child.classList?.contains('box-sub'));
+                if (observation && !observation.querySelector('.enterprise-observation-text')) {
+                    const observationText = observation.textContent.trim();
+                    observation.textContent = '';
+                    const label = createElement('span', 'enterprise-observation-label', 'Observação');
+                    const text = createElement('span', 'enterprise-observation-text', observationText);
+                    observation.append(label, text);
+                }
+
+                const actions = Array.from(card.children).find((child) => child.classList?.contains('card-actions'));
+                if (actions) {
+                    if (!actions.querySelector('.enterprise-view-main')) {
+                        const viewButton = document.createElement('button');
+                        viewButton.type = 'button';
+                        viewButton.className = 'action-btn enterprise-view-main';
+                        viewButton.innerHTML = `${icon('eye', 13)}<span>Visualizar</span>`;
+                        viewButton.title = 'Abrir visualização completa';
+                        viewButton.addEventListener('click', (event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            openDrawer(card);
+                        });
+                        actions.insertBefore(viewButton, actions.firstChild);
+                    }
+
+                    const editButton = actions.querySelector('.btn-edit-main');
+                    const deleteButton = actions.querySelector('.btn-delete-main');
+                    if (editButton && editButton.dataset.enterpriseIcon !== 'true') {
+                        editButton.dataset.enterpriseIcon = 'true';
+                        const label = editButton.textContent.trim() || 'Editar';
+                        editButton.innerHTML = `${icon('edit', 13)}<span>${label}</span>`;
+                        editButton.title = 'Editar cadastro';
+                    }
+                    if (deleteButton && deleteButton.dataset.enterpriseIcon !== 'true') {
+                        deleteButton.dataset.enterpriseIcon = 'true';
+                        const label = deleteButton.textContent.trim() || 'Excluir';
+                        deleteButton.innerHTML = `${icon('trash', 13)}<span>${label}</span>`;
+                        deleteButton.title = 'Excluir cadastro';
+                    }
+                }
+
+                if (state.resizeObserver && !state.observedCards.has(card)) {
+                    state.observedCards.add(card);
+                    state.resizeObserver.observe(card);
+                }
+
+                highlightCard(card);
+            };
+
+            const enhanceGenericRow = (row) => {
+                if (!row || row.dataset.enterpriseReady === 'true') {
+                    if (row) highlightGenericRow(row);
+                    return;
+                }
+
+                row.dataset.enterpriseReady = 'true';
+                row.classList.add('enterprise-generic-card');
+
+                const children = Array.from(row.children);
+                const pieceElement = children[0];
+                const referenceElement = children[1];
+                const actions = children[2];
+                const piece = pieceElement?.textContent.trim() || '';
+                const reference = referenceElement?.textContent.trim() || '';
+                row.dataset.enterprisePiece = piece;
+                row.dataset.enterpriseReference = reference;
+
+                const wrapField = (element, labelText, valueText) => {
+                    if (!element) return;
+                    element.textContent = '';
+                    element.classList.add('enterprise-generic-field');
+                    const label = createElement('span', 'enterprise-generic-label', labelText);
+                    const value = createElement('span', 'enterprise-generic-value', valueText);
+                    element.append(label, value);
+                };
+
+                wrapField(pieceElement, 'Peça', piece);
+                wrapField(referenceElement, 'Marcas / referências', reference);
+
+                if (actions) {
+                    actions.classList.add('enterprise-generic-actions');
+                    const copyButton = document.createElement('button');
+                    copyButton.type = 'button';
+                    copyButton.className = 'enterprise-generic-copy';
+                    copyButton.title = 'Copiar peça e referências';
+                    copyButton.setAttribute('aria-label', `Copiar ${piece}`);
+                    copyButton.innerHTML = icon('copy', 15);
+                    copyButton.addEventListener('click', () => copyText(`${piece}\n${reference}`, 'Peça e referências copiadas.'));
+                    actions.insertBefore(copyButton, actions.firstChild);
+
+                    const originalButtons = Array.from(actions.querySelectorAll('button:not(.enterprise-generic-copy)'));
+                    if (originalButtons[0]) {
+                        originalButtons[0].title = 'Editar referência genérica';
+                        originalButtons[0].setAttribute('aria-label', 'Editar referência genérica');
+                    }
+                    if (originalButtons[1]) {
+                        originalButtons[1].title = 'Excluir referência genérica';
+                        originalButtons[1].setAttribute('aria-label', 'Excluir referência genérica');
+                    }
+                }
+
+                highlightGenericRow(row);
+            };
+
+            const clearHighlights = (root) => {
+                root.querySelectorAll('mark.enterprise-search-mark').forEach((mark) => {
+                    mark.replaceWith(document.createTextNode(mark.textContent || ''));
+                });
+                root.normalize();
+            };
+
+            const highlightPlainElement = (element, term) => {
+                if (!element || !term) return;
+                const source = element.textContent || '';
+                const lowerSource = source.toLocaleLowerCase('pt-BR');
+                const lowerTerm = term.toLocaleLowerCase('pt-BR');
+                let cursor = 0;
+                let index = lowerSource.indexOf(lowerTerm, cursor);
+                if (index < 0) return;
+
+                const fragment = document.createDocumentFragment();
+                while (index >= 0) {
+                    if (index > cursor) fragment.appendChild(document.createTextNode(source.slice(cursor, index)));
+                    const mark = createElement('mark', 'enterprise-search-mark', source.slice(index, index + term.length));
+                    fragment.appendChild(mark);
+                    cursor = index + term.length;
+                    index = lowerSource.indexOf(lowerTerm, cursor);
+                }
+                if (cursor < source.length) fragment.appendChild(document.createTextNode(source.slice(cursor)));
+                element.replaceChildren(fragment);
+            };
+
+            const highlightCard = (card) => {
+                const term = document.getElementById('inputPesquisa')?.value.trim() || '';
+                const normalized = term.toLocaleLowerCase('pt-BR');
+                if (card.dataset.enterpriseHighlight === normalized) return;
+                clearHighlights(card);
+                card.dataset.enterpriseHighlight = normalized;
+                if (term.length < 2) return;
+
+                const targets = [
+                    card.querySelector('.manual2-title'),
+                    ...card.querySelectorAll('.info-chip-value'),
+                    ...card.querySelectorAll('.box-main > span'),
+                    card.querySelector('.enterprise-observation-text')
+                ].filter(Boolean);
+                targets.forEach((element) => highlightPlainElement(element, term));
+            };
+
+            const highlightGenericRow = (row) => {
+                const term = document.getElementById('inputPesquisa')?.value.trim() || '';
+                const normalized = term.toLocaleLowerCase('pt-BR');
+                if (row.dataset.enterpriseHighlight === normalized) return;
+                clearHighlights(row);
+                row.dataset.enterpriseHighlight = normalized;
+                if (term.length < 2) return;
+                row.querySelectorAll('.enterprise-generic-value').forEach((element) => highlightPlainElement(element, term));
+            };
+
+            const extractCardData = (card) => {
+                const title = card.querySelector('.manual2-title')?.textContent.trim() || 'Cadastro';
+                const id = card.id?.replace(/^card-/, '') || '';
+                const extras = Array.from(card.querySelectorAll('.info-chip')).map((chip) => ({
+                    label: chip.querySelector('.info-chip-label')?.textContent.trim() || 'Informação',
+                    value: chip.querySelector('.info-chip-value')?.textContent.trim() || ''
+                })).filter((field) => field.value);
+                const descriptions = Array.from(card.querySelectorAll('.desc-container .box-main')).map((description) => {
+                    const value = description.querySelector('span')?.textContent || description.textContent;
+                    return value.trim();
+                }).filter(Boolean);
+                const observation = card.querySelector('.enterprise-observation-text')?.textContent.trim()
+                    || Array.from(card.children).find((child) => child.classList?.contains('box-sub'))?.textContent.trim()
+                    || '';
+                return { id, title, extras, descriptions, observation };
+            };
+
+            const createCopyButton = (value, message, label) => {
+                const button = document.createElement('button');
+                button.type = 'button';
+                button.className = 'enterprise-detail-copy';
+                button.title = label;
+                button.setAttribute('aria-label', label);
+                button.innerHTML = icon('copy', 13);
+                button.addEventListener('click', () => copyText(value, message));
+                return button;
+            };
+
+            const appendDetailSection = (title, count, content) => {
+                const section = createElement('section', 'enterprise-detail-section');
+                const header = createElement('div', 'enterprise-detail-section-header');
+                const heading = createElement('h3', 'enterprise-detail-section-title', title);
+                header.appendChild(heading);
+                if (typeof count === 'number') {
+                    header.appendChild(createElement('span', 'enterprise-detail-section-count', String(count)));
+                }
+                section.append(header, content);
+                state.drawerContent.appendChild(section);
+            };
+
+            const renderDrawer = (data) => {
+                const title = document.getElementById('enterprise-detail-title');
+                const kicker = document.getElementById('enterprise-detail-kicker');
+                const subtitle = document.getElementById('enterprise-detail-subtitle');
+                if (title) title.textContent = data.title;
+                if (kicker) kicker.textContent = 'Visualização completa do cadastro';
+                if (subtitle) {
+                    const descText = `${data.descriptions.length} descrição${data.descriptions.length === 1 ? '' : 'ões'}`;
+                    const extraText = `${data.extras.length} informação${data.extras.length === 1 ? '' : 'ões'} adicional${data.extras.length === 1 ? '' : 'is'}`;
+                    subtitle.textContent = `${descText} · ${extraText} · dados apresentados sem cortes.`;
+                }
+
+                state.drawerContent.replaceChildren();
+
+                const fields = createElement('div', 'enterprise-detail-fields');
+                if (data.extras.length) {
+                    data.extras.forEach((field) => {
+                        const item = createElement('article', 'enterprise-detail-field');
+                        item.append(
+                            createElement('span', 'enterprise-detail-field-label', field.label),
+                            createElement('strong', 'enterprise-detail-field-value', field.value),
+                            createCopyButton(field.value, `${field.label} copiado.`, `Copiar ${field.label}`)
+                        );
+                        fields.appendChild(item);
+                    });
+                } else {
+                    fields.appendChild(createElement('div', 'enterprise-detail-empty', 'Nenhum código ou campo adicional foi configurado para aparecer neste card.'));
+                }
+                appendDetailSection('Códigos e aplicação', data.extras.length, fields);
+
+                const descriptionList = createElement('div', 'enterprise-detail-description-list');
+                if (data.descriptions.length) {
+                    data.descriptions.forEach((description, index) => {
+                        const item = createElement('article', 'enterprise-detail-description');
+                        item.append(
+                            createElement('span', 'enterprise-detail-index', String(index + 1).padStart(2, '0')),
+                            createElement('div', 'enterprise-detail-description-text', description),
+                            createCopyButton(description, `Descrição ${index + 1} copiada.`, `Copiar descrição ${index + 1}`)
+                        );
+                        descriptionList.appendChild(item);
+                    });
+                } else {
+                    descriptionList.appendChild(createElement('div', 'enterprise-detail-empty', 'Nenhuma descrição visível neste card.'));
+                }
+                appendDetailSection('Descrições do item', data.descriptions.length, descriptionList);
+
+                const observationContent = data.observation
+                    ? createElement('div', 'enterprise-detail-observation', data.observation)
+                    : createElement('div', 'enterprise-detail-empty', 'Nenhuma observação foi configurada para aparecer neste card.');
+                appendDetailSection('Observação', data.observation ? 1 : 0, observationContent);
+            };
+
+            const openDrawer = (card) => {
+                if (!state.drawerOverlay || !card) return;
+                clearTimeout(state.closeTimer);
+                state.currentData = extractCardData(card);
+                state.lastFocused = document.activeElement;
+                renderDrawer(state.currentData);
+                state.drawerOverlay.hidden = false;
+                state.drawerOverlay.setAttribute('aria-hidden', 'false');
+                document.body.classList.add('enterprise-drawer-open');
+                requestAnimationFrame(() => {
+                    state.drawerOverlay.classList.add('is-open');
+                    state.drawer?.focus({ preventScroll: true });
+                    state.drawerOverlay.querySelector('#enterprise-detail-close')?.focus({ preventScroll: true });
+                });
+            };
+
+            const closeDrawer = (restoreFocus = true) => {
+                if (!state.drawerOverlay || state.drawerOverlay.hidden) return;
+                state.drawerOverlay.classList.remove('is-open');
+                state.drawerOverlay.setAttribute('aria-hidden', 'true');
+                document.body.classList.remove('enterprise-drawer-open');
+                const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                clearTimeout(state.closeTimer);
+                state.closeTimer = setTimeout(() => {
+                    state.drawerOverlay.hidden = true;
+                    if (restoreFocus && state.lastFocused?.focus) state.lastFocused.focus({ preventScroll: true });
+                    state.currentData = null;
+                    state.lastFocused = null;
+                }, reduceMotion ? 0 : 260);
+            };
+
+            const copyCurrentRecord = () => {
+                const data = state.currentData;
+                if (!data) return;
+                const lines = [data.title];
+                if (data.extras.length) {
+                    lines.push('', 'CÓDIGOS E APLICAÇÃO');
+                    data.extras.forEach((field) => lines.push(`${field.label}: ${field.value}`));
+                }
+                if (data.descriptions.length) {
+                    lines.push('', 'DESCRIÇÕES');
+                    data.descriptions.forEach((description, index) => lines.push(`${index + 1}. ${description}`));
+                }
+                if (data.observation) lines.push('', `OBSERVAÇÃO: ${data.observation}`);
+                copyText(lines.join('\n'), 'Cadastro completo copiado.');
+            };
+
+            const enhanceAll = () => {
+                if (!state.list) return;
+                applyMode();
+                if (getContext() === 'veiculos') {
+                    state.list.querySelectorAll('.manual2-card').forEach(enhanceCard);
+                } else {
+                    state.list.querySelectorAll('.generic-row').forEach(enhanceGenericRow);
+                }
+                updateSummary();
+                scheduleLayout();
+            };
+
+            const scheduleEnhance = () => {
+                if (state.enhanceFrame) return;
+                state.enhanceFrame = requestAnimationFrame(() => {
+                    state.enhanceFrame = 0;
+                    enhanceAll();
+                });
+            };
+
+            const layoutCards = () => {
+                if (!state.list) return;
+                const cards = Array.from(state.list.querySelectorAll('.manual2-card'));
+                const isMasonry = getContext() === 'veiculos' && (state.mode === 'grid' || state.mode === 'compact');
+
+                if (!isMasonry) {
+                    cards.forEach((card) => card.style.removeProperty('grid-row-end'));
+                    return;
+                }
+
+                const styles = getComputedStyle(state.list);
+                const rowHeight = Number.parseFloat(styles.gridAutoRows) || 8;
+                const rowGap = Number.parseFloat(styles.rowGap) || (state.mode === 'compact' ? 14 : 20);
+                cards.forEach((card) => {
+                    const height = Math.max(card.offsetHeight, 1);
+                    const span = Math.max(1, Math.ceil((height + rowGap) / (rowHeight + rowGap)));
+                    const next = `span ${span}`;
+                    if (card.style.gridRowEnd !== next) card.style.gridRowEnd = next;
+                });
+            };
+
+            const scheduleLayout = () => {
+                if (state.layoutFrame) return;
+                state.layoutFrame = requestAnimationFrame(() => {
+                    state.layoutFrame = 0;
+                    layoutCards();
+                });
+            };
+
+            const setupObservers = () => {
+                const observer = new MutationObserver(() => scheduleEnhance());
+                observer.observe(state.list, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['class']
+                });
+
+                if ('ResizeObserver' in window) {
+                    state.resizeObserver = new ResizeObserver(() => scheduleLayout());
+                }
+
+                window.addEventListener('resize', scheduleLayout, { passive: true });
+                document.getElementById('inputPesquisa')?.addEventListener('input', scheduleEnhance);
+                document.addEventListener('click', (event) => {
+                    if (event.target.closest('#tab-veiculos, #tab-genericos')) {
+                        setTimeout(scheduleEnhance, 0);
+                    }
+                });
+            };
+
+            const hookZoom = (attempt = 0) => {
+                if (typeof window.zoom === 'function') {
+                    if (window.zoom.__enterpriseWrapped) return;
+                    const originalZoom = window.zoom;
+                    const wrapped = function(...args) {
+                        const result = originalZoom.apply(this, args);
+                        setTimeout(scheduleLayout, 40);
+                        return result;
+                    };
+                    wrapped.__enterpriseWrapped = true;
+                    window.zoom = wrapped;
+                    return;
+                }
+                if (attempt < 30) setTimeout(() => hookZoom(attempt + 1), 120);
+            };
+
+            const initialize = () => {
+                if (window.__enterpriseVisualizationReady) return;
+                const list = document.getElementById('listaItens');
+                if (!list) {
+                    setTimeout(initialize, 100);
+                    return;
+                }
+
+                window.__enterpriseVisualizationReady = true;
+                state.list = list;
+                state.mode = getStoredMode();
+                buildToolbar();
+                buildDrawer();
+                setupObservers();
+                hookZoom();
+                scheduleEnhance();
+            };
+
+            if (document.readyState === 'loading') {
+                window.addEventListener('DOMContentLoaded', initialize, { once: true });
+            } else {
+                setTimeout(initialize, 0);
+            }
+        })();
+    </script>
+
+
+    <!-- =====================================================================
+         UPGRADE ENTERPRISE: ORGANIZACAO DOS DADOS NOS CARDS
+         Camada adicional. Mantem estrutura, dados e funcoes existentes.
+    ====================================================================== -->
+    <style id="enterprise-card-organization-upgrade">
+        :root {
+            --eco-section-border: rgba(125, 211, 252, 0.14);
+            --eco-section-bg: rgba(2, 8, 23, 0.36);
+            --eco-muted: #64748b;
+            --eco-title: #dbeafe;
+        }
+
+        .manual2-card.enterprise-card.enterprise-card-organized {
+            gap: 13px;
+        }
+
+        /* The original extra-info-grid remains in place; it now contains semantic groups. */
+        .enterprise-card-organized .extra-info-grid.enterprise-organized-extras {
+            display: flex !important;
+            flex-direction: column;
+            gap: 10px !important;
+        }
+
+        .enterprise-data-section {
+            min-width: 0;
+            padding: 9px;
+            border: 1px solid var(--eco-section-border);
+            border-radius: 14px;
+            background:
+                linear-gradient(145deg, rgba(10, 20, 38, 0.70), rgba(5, 13, 27, 0.62)),
+                radial-gradient(260px circle at 0 0, rgba(59, 130, 246, 0.055), transparent 64%);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .enterprise-data-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 14px;
+            right: 14px;
+            height: 1px;
+            opacity: 0.62;
+            background: linear-gradient(90deg, transparent, rgba(96, 165, 250, 0.55), transparent);
+            pointer-events: none;
+        }
+
+        .enterprise-data-section--context::before {
+            background: linear-gradient(90deg, transparent, rgba(34, 211, 238, 0.52), rgba(245, 158, 11, 0.34), transparent);
+        }
+
+        .enterprise-data-section-header,
+        .enterprise-content-section-header {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .enterprise-data-section-header {
+            min-height: 30px;
+            margin-bottom: 8px;
+            padding: 1px 2px 7px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.10);
+        }
+
+        .enterprise-section-icon {
+            width: 25px;
+            height: 25px;
+            flex: 0 0 25px;
+            border-radius: 8px;
+            display: grid;
+            place-items: center;
+            color: #bfdbfe;
+            background: rgba(37, 99, 235, 0.13);
+            border: 1px solid rgba(96, 165, 250, 0.20);
+        }
+
+        .enterprise-data-section--context .enterprise-section-icon {
+            color: #a5f3fc;
+            background: rgba(8, 145, 178, 0.12);
+            border-color: rgba(34, 211, 238, 0.20);
+        }
+
+        .enterprise-section-copy {
+            min-width: 0;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+
+        .enterprise-section-title {
+            color: var(--eco-title);
+            font-family: var(--font-display);
+            font-size: 0.52rem;
+            font-weight: 900;
+            line-height: 1.25;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-section-subtitle {
+            color: var(--eco-muted);
+            font-size: 0.49rem;
+            font-weight: 800;
+            line-height: 1.25;
+            letter-spacing: 0.035em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-section-count {
+            min-width: 27px;
+            height: 23px;
+            padding: 0 7px;
+            flex: 0 0 auto;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #cbd5e1;
+            background: rgba(30, 41, 59, 0.66);
+            border: 1px solid rgba(148, 163, 184, 0.14);
+            font-size: 0.54rem;
+            font-weight: 900;
+        }
+
+        .enterprise-data-section-body {
+            min-width: 0;
+            display: grid;
+            gap: 8px;
+            align-items: start;
+        }
+
+        .enterprise-data-section--identification .enterprise-data-section-body {
+            grid-template-columns: minmax(0, 1.18fr) minmax(105px, 0.82fr);
+        }
+
+        .enterprise-data-section--identification.is-single .enterprise-data-section-body,
+        .enterprise-data-section--context.is-single .enterprise-data-section-body {
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .enterprise-data-section--identification .info-chip-barras {
+            grid-column: 1 / -1;
+        }
+
+        .enterprise-data-section--context .enterprise-data-section-body {
+            grid-template-columns: minmax(0, 1fr) minmax(98px, 0.34fr);
+        }
+
+        .enterprise-card-organized .enterprise-data-section .info-chip {
+            width: 100%;
+            min-width: 0;
+            min-height: 56px;
+            padding: 9px 10px;
+            border-radius: 11px;
+            justify-content: flex-start;
+            align-self: start;
+        }
+
+        .enterprise-card-organized .enterprise-data-section .info-chip-label {
+            margin-bottom: 2px;
+            line-height: 1.25;
+        }
+
+        .enterprise-card-organized .enterprise-data-section .info-chip-value {
+            padding-right: 18px;
+            font-size: 0.73rem;
+            line-height: 1.46;
+        }
+
+        .enterprise-card-organized .enterprise-data-section--context .info-chip-aplicacao {
+            min-height: 56px;
+        }
+
+        .enterprise-card-organized .enterprise-data-section--context .info-chip-marca {
+            min-height: 56px;
+            max-width: 142px;
+        }
+
+        .enterprise-card-organized .enterprise-data-section--context.is-single .info-chip-marca {
+            max-width: none;
+        }
+
+        /* Descriptions become a clearly labelled, numbered content block. */
+        .enterprise-card-organized .desc-container.enterprise-organized-descriptions {
+            padding: 9px;
+            gap: 8px;
+            border: 1px solid rgba(16, 185, 129, 0.16);
+            border-radius: 14px;
+            background:
+                linear-gradient(145deg, rgba(5, 24, 28, 0.29), rgba(2, 8, 23, 0.38)),
+                radial-gradient(260px circle at 0 0, rgba(16, 185, 129, 0.055), transparent 66%);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.018) inset;
+        }
+
+        .enterprise-content-section-header {
+            min-height: 31px;
+            padding: 1px 2px 7px;
+            margin-bottom: 1px;
+            border-bottom: 1px solid rgba(16, 185, 129, 0.11);
+        }
+
+        .enterprise-content-section-header .enterprise-section-icon {
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.11);
+            border-color: rgba(16, 185, 129, 0.20);
+        }
+
+        .enterprise-content-section-header .enterprise-section-title {
+            color: #d1fae5;
+        }
+
+        .enterprise-content-section-header .enterprise-section-count {
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.09);
+            border-color: rgba(16, 185, 129, 0.18);
+        }
+
+        .enterprise-card-organized .enterprise-organized-descriptions .box-main {
+            min-height: 48px;
+            padding: 10px 10px;
+            display: grid !important;
+            grid-template-columns: 27px minmax(0, 1fr);
+            grid-template-rows: auto;
+            align-items: start;
+            justify-content: initial;
+            gap: 9px;
+            border-color: rgba(16, 185, 129, 0.17);
+            background: rgba(4, 15, 28, 0.58);
+        }
+
+        .enterprise-card-organized .enterprise-organized-descriptions .box-main:hover {
+            transform: translateX(1px);
+        }
+
+        .enterprise-card-organized .enterprise-organized-descriptions .box-main > span:not(.enterprise-card-description-index) {
+            min-width: 0;
+            grid-column: 2;
+            grid-row: 1;
+            padding: 2px 36px 1px 0;
+            line-height: 1.55;
+        }
+
+        .enterprise-card-description-index {
+            width: 27px;
+            height: 27px;
+            grid-column: 1;
+            grid-row: 1;
+            display: grid;
+            place-items: center;
+            border-radius: 8px;
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.10);
+            border: 1px solid rgba(16, 185, 129, 0.19);
+            font-family: var(--font-mono);
+            font-size: 0.54rem;
+            font-style: normal;
+            font-weight: 900;
+            line-height: 1;
+        }
+
+        .enterprise-card-organized .enterprise-organized-descriptions .box-main::after {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            z-index: 2;
+            margin: 0;
+            transform: translateY(-50%) scale(0.94);
+        }
+
+        .enterprise-card-organized .enterprise-organized-descriptions .box-main:hover::after {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        /* Observation remains the same field, but is visually separated from descriptions. */
+        .enterprise-card-organized .box-sub.enterprise-organized-observation {
+            margin-top: 0;
+            padding: 10px 12px 11px 14px;
+            gap: 6px;
+            border: 1px solid rgba(248, 113, 113, 0.17);
+            border-left: 3px solid #ef4444;
+            border-radius: 5px 12px 12px 5px;
+            background:
+                linear-gradient(145deg, rgba(51, 16, 29, 0.23), rgba(15, 23, 42, 0.48)),
+                radial-gradient(220px circle at 0 0, rgba(239, 68, 68, 0.06), transparent 68%);
+            box-shadow: 0 1px 0 rgba(255,255,255,0.018) inset;
+        }
+
+        .enterprise-card-organized .enterprise-organized-observation .enterprise-observation-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .enterprise-card-organized .enterprise-organized-observation .enterprise-observation-label::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            flex: 0 0 6px;
+            border-radius: 50%;
+            background: #f87171;
+            box-shadow: 0 0 9px rgba(248, 113, 113, 0.55);
+        }
+
+        /* Creates a visual end to the information area without changing any button. */
+        #listaItens:not(.enterprise-view-list) .enterprise-card-organized .card-actions {
+            padding-top: 10px;
+            border-top: 1px solid rgba(148, 163, 184, 0.11);
+        }
+
+        /* Compact mode keeps the same hierarchy with less vertical space. */
+        #listaItens.enterprise-view-compact .enterprise-data-section,
+        #listaItens.enterprise-view-compact .enterprise-organized-descriptions {
+            padding: 7px;
+            border-radius: 12px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-data-section-header,
+        #listaItens.enterprise-view-compact .enterprise-content-section-header {
+            min-height: 27px;
+            margin-bottom: 6px;
+            padding-bottom: 5px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-section-subtitle {
+            display: none;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-section-icon {
+            width: 22px;
+            height: 22px;
+            flex-basis: 22px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card-organized .enterprise-data-section .info-chip {
+            min-height: 49px;
+            padding: 7px 8px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card-organized .enterprise-organized-descriptions .box-main {
+            min-height: 42px;
+            padding: 8px;
+            grid-template-columns: 24px minmax(0, 1fr);
+            gap: 7px;
+        }
+
+        #listaItens.enterprise-view-compact .enterprise-card-description-index {
+            width: 24px;
+            height: 24px;
+            border-radius: 7px;
+            font-size: 0.50rem;
+        }
+
+        /* In list mode, the two groups share the available horizontal space. */
+        #listaItens.enterprise-view-list .enterprise-card-organized .extra-info-grid.enterprise-organized-extras {
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: stretch;
+            gap: 10px !important;
+        }
+
+        #listaItens.enterprise-view-list .enterprise-data-section {
+            height: 100%;
+        }
+
+        #listaItens.enterprise-view-list .enterprise-card-organized .desc-container.enterprise-organized-descriptions {
+            padding: 9px;
+        }
+
+        @media (max-width: 1180px) {
+            #listaItens.enterprise-view-list .enterprise-card-organized .extra-info-grid.enterprise-organized-extras {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        @media (max-width: 560px) {
+            .enterprise-data-section--identification .enterprise-data-section-body,
+            .enterprise-data-section--context .enterprise-data-section-body {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .enterprise-data-section--identification .info-chip-barras {
+                grid-column: auto;
+            }
+
+            .enterprise-card-organized .enterprise-data-section--context .info-chip-marca {
+                max-width: none;
+            }
+
+            .enterprise-section-subtitle {
+                display: none;
+            }
+        }
+
+        @media (max-width: 420px) {
+            .enterprise-card-organized .enterprise-organized-descriptions .box-main {
+                grid-template-columns: 25px minmax(0, 1fr);
+                gap: 7px;
+            }
+
+            .enterprise-card-organized .enterprise-organized-descriptions .box-main > span:not(.enterprise-card-description-index) {
+                padding-right: 0;
+            }
+
+            .enterprise-card-organized .enterprise-organized-descriptions .box-main::after {
+                display: none;
+            }
+        }
+    </style>
+
+    <script id="enterprise-card-organization-upgrade-script">
+        (() => {
+            'use strict';
+
+            const state = {
+                list: null,
+                frame: 0,
+                retryTimer: 0
+            };
+
+            const icons = {
+                identification: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/><circle cx="18" cy="17" r="2"/></svg>',
+                context: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M5 17l1-5h12l1 5"/><path d="M8 12l2-4h4l2 4"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
+                description: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg>'
+            };
+
+            const text = {
+                identificationTitle: 'Identifica\u00e7\u00e3o',
+                identificationSubtitle: 'C\u00f3digos da pe\u00e7a',
+                contextTitle: 'Aplica\u00e7\u00e3o e marca',
+                contextSubtitle: 'Contexto comercial',
+                descriptionsTitle: 'Descri\u00e7\u00f5es do item',
+                descriptionsSubtitle: 'Conte\u00fado principal do cadastro'
+            };
+
+            const makeHeader = (kind, title, subtitle, count, className) => {
+                const header = document.createElement('div');
+                header.className = className;
+
+                const iconBox = document.createElement('span');
+                iconBox.className = 'enterprise-section-icon';
+                iconBox.setAttribute('aria-hidden', 'true');
+                iconBox.innerHTML = icons[kind] || icons.identification;
+
+                const copy = document.createElement('span');
+                copy.className = 'enterprise-section-copy';
+
+                const titleNode = document.createElement('strong');
+                titleNode.className = 'enterprise-section-title';
+                titleNode.textContent = title;
+
+                const subtitleNode = document.createElement('span');
+                subtitleNode.className = 'enterprise-section-subtitle';
+                subtitleNode.textContent = subtitle;
+
+                const countNode = document.createElement('span');
+                countNode.className = 'enterprise-section-count';
+                countNode.textContent = String(count).padStart(2, '0');
+                countNode.setAttribute('aria-label', `${count} campo${count === 1 ? '' : 's'}`);
+
+                copy.append(titleNode, subtitleNode);
+                header.append(iconBox, copy, countNode);
+                return header;
+            };
+
+            const makeDataSection = (kind, title, subtitle, nodes) => {
+                const section = document.createElement('section');
+                section.className = `enterprise-data-section enterprise-data-section--${kind}`;
+                section.setAttribute('role', 'group');
+                section.setAttribute('aria-label', title);
+                if (nodes.length === 1) section.classList.add('is-single');
+
+                const header = makeHeader(kind, title, subtitle, nodes.length, 'enterprise-data-section-header');
+                const body = document.createElement('div');
+                body.className = 'enterprise-data-section-body';
+                nodes.forEach((node) => body.appendChild(node));
+                section.append(header, body);
+                return section;
+            };
+
+            const organizeExtras = (card) => {
+                const grid = card.querySelector('.extra-info-grid');
+                if (!grid || grid.dataset.enterpriseDataOrganized === 'true') return;
+
+                const chips = Array.from(grid.children).filter((node) => node.classList?.contains('info-chip'));
+                if (!chips.length) return;
+
+                grid.dataset.enterpriseDataOrganized = 'true';
+                grid.classList.add('enterprise-organized-extras');
+
+                const identification = chips.filter((chip) =>
+                    chip.classList.contains('info-chip-original') ||
+                    chip.classList.contains('info-chip-generico') ||
+                    chip.classList.contains('info-chip-barras')
+                );
+                const context = chips.filter((chip) =>
+                    chip.classList.contains('info-chip-aplicacao') ||
+                    chip.classList.contains('info-chip-marca')
+                );
+                const known = new Set([...identification, ...context]);
+                const other = chips.filter((chip) => !known.has(chip));
+
+                grid.replaceChildren();
+                if (identification.length) {
+                    grid.appendChild(makeDataSection(
+                        'identification',
+                        text.identificationTitle,
+                        text.identificationSubtitle,
+                        identification
+                    ));
+                }
+                if (context.length) {
+                    grid.appendChild(makeDataSection(
+                        'context',
+                        text.contextTitle,
+                        text.contextSubtitle,
+                        context
+                    ));
+                }
+                if (other.length) {
+                    grid.appendChild(makeDataSection(
+                        'identification',
+                        'Outras informa\u00e7\u00f5es',
+                        'Dados complementares',
+                        other
+                    ));
+                }
+            };
+
+            const organizeDescriptions = (card) => {
+                const container = card.querySelector('.desc-container');
+                if (!container) return;
+
+                const descriptions = Array.from(container.querySelectorAll(':scope > .box-main'));
+                if (!container.querySelector(':scope > .enterprise-content-section-header')) {
+                    const header = makeHeader(
+                        'description',
+                        text.descriptionsTitle,
+                        text.descriptionsSubtitle,
+                        descriptions.length,
+                        'enterprise-content-section-header'
+                    );
+                    container.insertBefore(header, container.firstChild);
+                }
+
+                container.classList.add('enterprise-organized-descriptions');
+                descriptions.forEach((description, index) => {
+                    let badge = description.querySelector(':scope > .enterprise-card-description-index');
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = 'enterprise-card-description-index';
+                        badge.setAttribute('aria-hidden', 'true');
+                        description.appendChild(badge);
+                    }
+                    badge.textContent = String(index + 1).padStart(2, '0');
+                });
+            };
+
+            const organizeObservation = (card) => {
+                const observation = Array.from(card.children).find((child) => child.classList?.contains('box-sub'));
+                if (observation) observation.classList.add('enterprise-organized-observation');
+            };
+
+            const organizeCard = (card) => {
+                if (!card || card.dataset.enterpriseCardOrganized === 'true') return true;
+                if (card.dataset.enterpriseReady !== 'true' && !card.classList.contains('enterprise-card')) return false;
+
+                card.dataset.enterpriseCardOrganized = 'true';
+                card.classList.add('enterprise-card-organized');
+                organizeExtras(card);
+                organizeDescriptions(card);
+                organizeObservation(card);
+                return true;
+            };
+
+            const organizeAll = () => {
+                if (!state.list) return;
+                let waiting = false;
+                state.list.querySelectorAll('.manual2-card').forEach((card) => {
+                    if (!organizeCard(card)) waiting = true;
+                });
+                if (waiting) {
+                    clearTimeout(state.retryTimer);
+                    state.retryTimer = setTimeout(schedule, 80);
+                }
+            };
+
+            const schedule = () => {
+                if (state.frame) return;
+                state.frame = requestAnimationFrame(() => {
+                    state.frame = 0;
+                    organizeAll();
+                });
+            };
+
+            const initialize = () => {
+                if (window.__enterpriseCardOrganizationReady) return;
+                const list = document.getElementById('listaItens');
+                if (!list) {
+                    setTimeout(initialize, 100);
+                    return;
+                }
+
+                window.__enterpriseCardOrganizationReady = true;
+                state.list = list;
+
+                const observer = new MutationObserver(schedule);
+                observer.observe(list, {
+                    childList: true,
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['class', 'data-enterprise-ready']
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (event.target.closest('#tab-veiculos, #enterprise-fit-cards, [data-view-mode]')) {
+                        setTimeout(schedule, 0);
+                    }
+                });
+
+                schedule();
+            };
+
+            if (document.readyState === 'loading') {
+                window.addEventListener('DOMContentLoaded', initialize, { once: true });
+            } else {
+                setTimeout(initialize, 0);
+            }
+        })();
+    </script>
+
 </body>
 </html>
