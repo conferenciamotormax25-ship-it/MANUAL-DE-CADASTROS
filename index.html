@@ -1662,7 +1662,7 @@
     </div>
 
     <div id="btn-desfiltrar-flutuante">
-        <button onclick="limparBusca(); document.getElementById('inputPesquisa').focus()" class="btn-float-clear" title="LIMPAR TUDO">
+        <button onclick="sairFocoBusca()" class="btn-float-clear" title="VOLTAR">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -2004,7 +2004,10 @@
         let dadosOriginais = [], dadosGenericos = [];
         let filtroLetra = "", idSalvoRecentemente = null, idParaExcluir = null, nivelZoom = 1.0, contextoAtual = 'veiculos';
         let paginaAtual = 1;
-        const itensPorPagina = 15;
+        let idCardFocadoBusca = null;
+        let cancelarEscutaAtual = null;
+        let contextoEmEscuta = null;
+        const itensPorPagina = 3;
 
         let lastScrollTop = 0;
         const mainHeader = document.getElementById('mainHeader');
@@ -2155,8 +2158,7 @@
                     window.fecharModalConfigCard();
                     if (document.activeElement) document.activeElement.blur();
                 } else {
-                    limparBusca();
-                    inputPesquisa.focus();
+                    window.sairFocoBusca();
                 }
                 return;
             }
@@ -2193,11 +2195,13 @@
 
         window.setContext = (ctx) => {
             contextoAtual = ctx;
+            idCardFocadoBusca = null;
             document.getElementById('tab-veiculos').classList.toggle('active', ctx === 'veiculos');
             document.getElementById('tab-genericos').classList.toggle('active', ctx === 'genericos');
             document.getElementById('listaItens').className = ctx === 'genericos' ? 'p-8 max-w-[1900px] mx-auto grid-list-view mt-10' : 'p-8 max-w-[1900px] mx-auto gap-6 mt-10';
             paginaAtual = 1;
             renderizar();
+            if (auth.currentUser) iniciarEscutas();
         };
 
         function atualizarRelogio() {
@@ -2216,20 +2220,51 @@
         };
 
         function iniciarEscutas() {
-            onSnapshot(query(collection(db, "cadastros_veiculos")), (snapshot) => {
-                dadosOriginais = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                if(contextoAtual === 'veiculos') renderizar();
-            });
-            onSnapshot(query(collection(db, "codigos_genericos")), (snapshot) => {
-                dadosGenericos = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                if(contextoAtual === 'genericos') renderizar();
+            if (contextoEmEscuta === contextoAtual && cancelarEscutaAtual) return;
+            if (cancelarEscutaAtual) cancelarEscutaAtual();
+
+            const contextoDaEscuta = contextoAtual;
+            const nomeColecao = contextoDaEscuta === 'veiculos' ? 'cadastros_veiculos' : 'codigos_genericos';
+            contextoEmEscuta = contextoDaEscuta;
+
+            cancelarEscutaAtual = onSnapshot(query(collection(db, nomeColecao)), (snapshot) => {
+                const dados = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                if (contextoDaEscuta === 'veiculos') dadosOriginais = dados;
+                else dadosGenericos = dados;
+                if (contextoAtual === contextoDaEscuta) renderizar();
             });
         }
 
         window.limparBusca = () => {
             document.getElementById('inputPesquisa').value = "";
             filtroLetra = "";
+            idCardFocadoBusca = null;
             window.resetarPaginaERenderizar();
+        };
+
+        window.sairFocoBusca = () => {
+            const inputPesquisa = document.getElementById('inputPesquisa');
+            if (idCardFocadoBusca) {
+                idCardFocadoBusca = null;
+                paginaAtual = 1;
+                renderizar();
+            } else {
+                window.limparBusca();
+            }
+            requestAnimationFrame(() => {
+                mainHeader.classList.remove('header-hidden');
+                zoomControls.classList.remove('zoom-hidden');
+                inputPesquisa.focus();
+            });
+        };
+
+        window.focarCardBusca = (event, id) => {
+            const inputPesquisa = document.getElementById('inputPesquisa');
+            if (!id || normalizarTextoBusca(inputPesquisa.value).length < 2) return;
+            if (event?.target?.closest('button, a, input, textarea, select, .info-chip, .box-main, [role="button"]')) return;
+            idCardFocadoBusca = id;
+            paginaAtual = 1;
+            renderizar();
         };
 
         window.resetarPaginaERenderizar = () => { paginaAtual = 1; renderizar(); };
@@ -2289,7 +2324,7 @@
             return melhorPontuacao;
         };
 
-        const atualizarFeedbackBusca = (consultaOriginal, quantidade, isolado = false) => {
+        const atualizarFeedbackBusca = (consultaOriginal, quantidade, isolado = false, focoManual = false) => {
             const feedback = document.getElementById('search-feedback');
             if (!feedback) return;
 
@@ -2310,9 +2345,11 @@
                 return;
             }
 
-            feedback.textContent = isolado
-                ? 'Resultado localizado · exibindo somente o card encontrado'
-                : `${quantidade} resultado${quantidade === 1 ? '' : 's'} relevante${quantidade === 1 ? '' : 's'} · melhor correspondência primeiro`;
+            feedback.textContent = focoManual
+                ? 'Card selecionado · foco total ativado'
+                : isolado
+                    ? 'Resultado localizado · exibindo somente o card encontrado'
+                    : `${quantidade} resultado${quantidade === 1 ? '' : 's'} relevante${quantidade === 1 ? '' : 's'} · clique no card desejado para focar`;
         };
 
         window.renderizar = function() {
@@ -2371,14 +2408,28 @@
                 (!segundo || melhor.pontuacao - segundo.pontuacao >= 120)
             );
 
-            if (resultadoDireto) resultadosPontuados = [melhor];
+            let focoManualAtivo = false;
+            if (buscaValida && idCardFocadoBusca) {
+                const selecionado = resultadosPontuados.find((resultado) => resultado.item.id === idCardFocadoBusca);
+                if (selecionado) {
+                    resultadosPontuados = [selecionado];
+                    focoManualAtivo = true;
+                } else {
+                    idCardFocadoBusca = null;
+                }
+            }
+
+            if (!focoManualAtivo && resultadoDireto) resultadosPontuados = [melhor];
 
             const todosFiltrados = resultadosPontuados.map((resultado) => resultado.item);
             const melhorResultadoId = buscaValida && todosFiltrados.length ? todosFiltrados[0].id : '';
             const buscaIsolada = buscaValida && todosFiltrados.length === 1;
+            const modoSelecaoBusca = buscaValida && todosFiltrados.length > 1;
             lista.classList.toggle('search-isolated', buscaIsolada);
             document.body.classList.toggle('search-focus-mode', buscaIsolada);
-            atualizarFeedbackBusca(buscaOriginal, todosFiltrados.length, buscaIsolada);
+            atualizarFeedbackBusca(buscaOriginal, todosFiltrados.length, buscaIsolada, focoManualAtivo);
+            const focusExitLabel = document.querySelector('.focus-exit-label');
+            if (focusExitLabel) focusExitLabel.textContent = focoManualAtivo ? 'Voltar aos resultados · Esc' : 'Voltar à busca · Esc';
 
             document.getElementById('contador-total').innerText = todosFiltrados.length;
             const totalPaginas = Math.ceil(todosFiltrados.length / itensPorPagina) || 1;
@@ -2411,9 +2462,10 @@
                         showCodOriginal || showCodGenerico || showAplicacao || showMarca || showCodBarras;
 
                     return `
-                    <div id="card-${item.id}" class="manual2-card card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''} ${item.id === melhorResultadoId ? 'search-primary-card' : ''}">
+                    <div id="card-${item.id}" onclick="window.focarCardBusca(event, '${item.id}')" class="manual2-card card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''} ${item.id === melhorResultadoId ? 'search-primary-card' : ''} ${modoSelecaoBusca ? 'search-selectable-card' : ''}">
                         <div id="copy-overlay-${item.id}" class="copy-feedback">Copiado!</div>
                         <div class="manual2-title">${item.veiculo}</div>
+                        ${modoSelecaoBusca ? `<div class="search-focus-hint"><span class="search-focus-hint-icon">⌖</span><span>Clique neste card para abrir em foco total</span></div>` : ''}
 
                         ${anyExtras ? `
                         <div class="extra-info-grid">
@@ -2442,7 +2494,7 @@
                 }).join('');
             } else {
                 lista.innerHTML = filtrados.map(item => `
-                    <div id="card-${item.id}" class="generic-row card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''} ${item.id === melhorResultadoId ? 'search-primary-card' : ''}">
+                    <div id="card-${item.id}" onclick="window.focarCardBusca(event, '${item.id}')" class="generic-row card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''} ${item.id === melhorResultadoId ? 'search-primary-card' : ''} ${modoSelecaoBusca ? 'search-selectable-card' : ''}">
                         <div class="font-black text-white text-sm uppercase">${item.peca}</div>
                         <div class="font-black text-blue-400 text-xs uppercase italic">${item.marca}</div>
                         <div class="flex gap-2 justify-end">
@@ -2693,6 +2745,7 @@
 
         window.setFiltro = (l) => {
             document.getElementById('inputPesquisa').value = "";
+            idCardFocadoBusca = null;
             filtroLetra = l; 
             resetarPaginaERenderizar();
         };
@@ -2706,6 +2759,7 @@
 
         let temporizadorBusca = 0;
         document.getElementById('inputPesquisa').addEventListener('input', () => {
+            idCardFocadoBusca = null;
             if(document.getElementById('inputPesquisa').value.length > 0) filtroLetra = "";
             clearTimeout(temporizadorBusca);
             temporizadorBusca = setTimeout(window.resetarPaginaERenderizar, 180);
@@ -5734,6 +5788,308 @@
 
             .enterprise-card-organized .enterprise-organized-descriptions .box-main::after {
                 display: none;
+            }
+        }
+
+        /* ================================================================
+           STUDIO COLOR SYSTEM — profundidade, hierarquia e contraste
+        ================================================================= */
+        :root {
+            --studio-blue: #4285f4;
+            --studio-indigo: #6366f1;
+            --studio-violet: #8b5cf6;
+            --studio-cyan: #22d3ee;
+            --studio-teal: #2dd4bf;
+            --studio-amber: #fbbf24;
+            --studio-rose: #fb7185;
+            --bg: #050817;
+            --card: rgba(9, 17, 36, 0.88);
+            --border: rgba(148, 163, 184, 0.16);
+        }
+
+        body {
+            background:
+                radial-gradient(900px circle at 12% -8%, rgba(66, 133, 244, 0.18), transparent 58%),
+                radial-gradient(760px circle at 92% 4%, rgba(139, 92, 246, 0.14), transparent 56%),
+                radial-gradient(660px circle at 55% 108%, rgba(34, 211, 238, 0.09), transparent 62%),
+                linear-gradient(155deg, #050817 0%, #07101f 46%, #050914 100%);
+            background-attachment: fixed;
+        }
+
+        #mainHeader {
+            background: rgba(5, 8, 23, 0.88);
+            border-color: rgba(96, 165, 250, 0.16) !important;
+            box-shadow: 0 20px 60px -42px rgba(37, 99, 235, 0.85);
+            backdrop-filter: blur(24px) saturate(135%);
+            -webkit-backdrop-filter: blur(24px) saturate(135%);
+        }
+
+        #mainHeader header {
+            background:
+                radial-gradient(520px circle at 10% 0%, rgba(66, 133, 244, 0.11), transparent 62%),
+                rgba(5, 8, 23, 0.82) !important;
+        }
+
+        #mainHeader section {
+            background: linear-gradient(180deg, rgba(7, 13, 30, 0.82), rgba(5, 9, 22, 0.90)) !important;
+        }
+
+        h1 {
+            color: #f8fafc;
+            text-shadow: 0 0 28px rgba(96, 165, 250, 0.14);
+        }
+
+        h1 .text-blue-500 {
+            color: #60a5fa !important;
+            text-shadow: 0 0 24px rgba(66, 133, 244, 0.32);
+        }
+
+        #inputPesquisa {
+            color: #f8fafc;
+            background:
+                linear-gradient(145deg, rgba(9, 17, 36, 0.96), rgba(5, 10, 24, 0.94)) padding-box,
+                linear-gradient(110deg, rgba(66, 133, 244, 0.50), rgba(139, 92, 246, 0.36), rgba(34, 211, 238, 0.30)) border-box !important;
+            border: 2px solid transparent !important;
+            box-shadow: 0 16px 40px -30px rgba(66, 133, 244, 0.75), inset 0 1px 0 rgba(255,255,255,0.035);
+        }
+
+        #inputPesquisa:focus {
+            border-color: transparent !important;
+            box-shadow:
+                0 0 0 4px rgba(66, 133, 244, 0.12),
+                0 20px 54px -27px rgba(99, 102, 241, 0.88),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .btn-l {
+            color: #8290a8 !important;
+            background: linear-gradient(145deg, rgba(17, 27, 49, 0.94), rgba(10, 18, 35, 0.96)) !important;
+            border: 1px solid rgba(148, 163, 184, 0.10);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+        }
+
+        .btn-l.bg-blue-600 {
+            color: #fff !important;
+            border-color: rgba(147, 197, 253, 0.34);
+            background: linear-gradient(145deg, #4285f4, #4f46e5) !important;
+            box-shadow: 0 9px 22px -13px rgba(66, 133, 244, 0.95), inset 0 1px 0 rgba(255,255,255,0.18);
+        }
+
+        #enterprise-view-toolbar {
+            border-color: rgba(129, 140, 248, 0.22);
+            background: linear-gradient(145deg, rgba(17, 24, 50, 0.94), rgba(8, 15, 31, 0.96));
+            box-shadow: 0 12px 30px -22px rgba(99, 102, 241, 0.9), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+
+        #enterprise-view-toolbar .enterprise-view-option.is-active {
+            color: #fff;
+            border-color: rgba(165, 180, 252, 0.34);
+            background: linear-gradient(145deg, rgba(66, 133, 244, 0.95), rgba(99, 102, 241, 0.88));
+            box-shadow: 0 8px 18px -12px rgba(99, 102, 241, 0.95);
+        }
+
+        .manual2-card.enterprise-card {
+            border: 1px solid rgba(96, 165, 250, 0.22);
+            background:
+                radial-gradient(460px circle at 0 0, rgba(66, 133, 244, 0.09), transparent 58%),
+                radial-gradient(360px circle at 100% 0, rgba(139, 92, 246, 0.065), transparent 58%),
+                linear-gradient(155deg, rgba(10, 20, 42, 0.96), rgba(6, 13, 29, 0.97));
+            box-shadow:
+                0 28px 70px -46px rgba(15, 23, 42, 0.98),
+                0 12px 34px -28px rgba(66, 133, 244, 0.62),
+                inset 0 1px 0 rgba(255,255,255,0.035);
+        }
+
+        .manual2-card.enterprise-card:hover {
+            border-color: rgba(96, 165, 250, 0.42);
+            box-shadow:
+                0 34px 76px -46px rgba(0, 0, 0, 0.98),
+                0 18px 42px -28px rgba(99, 102, 241, 0.68),
+                inset 0 1px 0 rgba(255,255,255,0.05);
+        }
+
+        .enterprise-card-header {
+            border-bottom-color: rgba(129, 140, 248, 0.16);
+        }
+
+        .enterprise-card-eyebrow {
+            color: #93c5fd;
+        }
+
+        .enterprise-card-header .manual2-title {
+            color: #f8fafc;
+            text-shadow: 0 0 22px rgba(96, 165, 250, 0.16);
+        }
+
+        .enterprise-quick-view,
+        .enterprise-description-count {
+            color: #bfdbfe;
+            border-color: rgba(96, 165, 250, 0.24);
+            background: rgba(37, 99, 235, 0.12);
+        }
+
+        .enterprise-data-section--identification {
+            border-color: rgba(96, 165, 250, 0.18);
+            background:
+                linear-gradient(145deg, rgba(12, 31, 63, 0.62), rgba(7, 16, 34, 0.74)),
+                radial-gradient(240px circle at 0 0, rgba(66, 133, 244, 0.10), transparent 68%);
+        }
+
+        .enterprise-data-section--context {
+            border-color: rgba(167, 139, 250, 0.18);
+            background:
+                linear-gradient(145deg, rgba(35, 24, 65, 0.48), rgba(8, 17, 35, 0.75)),
+                radial-gradient(250px circle at 100% 0, rgba(251, 191, 36, 0.075), transparent 66%);
+        }
+
+        .enterprise-data-section--context .enterprise-section-icon {
+            color: #ddd6fe;
+            border-color: rgba(167, 139, 250, 0.24);
+            background: rgba(124, 58, 237, 0.13);
+        }
+
+        .enterprise-data-section--context .enterprise-section-title {
+            color: #ede9fe;
+        }
+
+        .enterprise-card .info-chip {
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+        }
+
+        .enterprise-card .info-chip-original {
+            border-color: rgba(96, 165, 250, 0.28);
+            background: rgba(37, 99, 235, 0.10);
+        }
+
+        .enterprise-card .info-chip-generico {
+            border-color: rgba(167, 139, 250, 0.28);
+            background: rgba(124, 58, 237, 0.10);
+        }
+
+        .enterprise-card .info-chip-aplicacao {
+            border-color: rgba(34, 211, 238, 0.28);
+            background: rgba(8, 145, 178, 0.10);
+        }
+
+        .enterprise-card .info-chip-marca {
+            border-color: rgba(251, 191, 36, 0.28);
+            background: rgba(217, 119, 6, 0.095);
+        }
+
+        .enterprise-card .info-chip-barras {
+            border-color: rgba(251, 113, 133, 0.24);
+            background: rgba(190, 24, 93, 0.075);
+        }
+
+        .enterprise-card-organized .desc-container.enterprise-organized-descriptions {
+            border-color: rgba(45, 212, 191, 0.20);
+            background:
+                linear-gradient(145deg, rgba(6, 45, 50, 0.32), rgba(5, 14, 31, 0.70)),
+                radial-gradient(300px circle at 0 0, rgba(45, 212, 191, 0.085), transparent 68%);
+        }
+
+        .enterprise-card-organized .enterprise-organized-descriptions .box-main {
+            border-color: rgba(45, 212, 191, 0.18);
+            background: linear-gradient(145deg, rgba(5, 32, 42, 0.66), rgba(5, 16, 32, 0.76));
+        }
+
+        .enterprise-variation-toggle {
+            border-color: rgba(139, 92, 246, 0.28);
+            background:
+                linear-gradient(135deg, rgba(76, 29, 149, 0.20), rgba(8, 28, 55, 0.68)),
+                radial-gradient(220px circle at 0 0, rgba(34, 211, 238, 0.09), transparent 68%);
+        }
+
+        .enterprise-variation-toggle:hover {
+            border-color: rgba(129, 140, 248, 0.46);
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.22), rgba(8, 36, 60, 0.76));
+        }
+
+        .enterprise-card-organized .box-sub.enterprise-organized-observation {
+            border-color: rgba(251, 113, 133, 0.22);
+            border-left-color: #fb7185;
+            background:
+                linear-gradient(145deg, rgba(67, 20, 42, 0.31), rgba(13, 18, 36, 0.70)),
+                radial-gradient(220px circle at 0 0, rgba(251, 113, 133, 0.08), transparent 68%);
+        }
+
+        .enterprise-view-main {
+            background: linear-gradient(145deg, #4285f4, #4f46e5);
+        }
+
+        .btn-edit-main {
+            background: linear-gradient(145deg, #f59e0b, #f97316) !important;
+        }
+
+        .btn-delete-main {
+            background: linear-gradient(145deg, #f43f5e, #e11d48) !important;
+        }
+
+        .generic-row.enterprise-generic-card {
+            border-color: rgba(96, 165, 250, 0.20);
+            background:
+                radial-gradient(280px circle at 0 0, rgba(66, 133, 244, 0.09), transparent 65%),
+                linear-gradient(145deg, rgba(11, 21, 43, 0.95), rgba(7, 14, 30, 0.97));
+        }
+
+        .search-selectable-card {
+            cursor: pointer;
+        }
+
+        .manual2-card.search-selectable-card:hover,
+        .generic-row.search-selectable-card:hover {
+            border-color: rgba(129, 140, 248, 0.68) !important;
+            box-shadow:
+                0 0 0 1px rgba(99, 102, 241, 0.17),
+                0 28px 64px -35px rgba(79, 70, 229, 0.82) !important;
+        }
+
+        .search-focus-hint {
+            min-height: 38px;
+            padding: 8px 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            border: 1px solid rgba(129, 140, 248, 0.24);
+            border-radius: 11px;
+            color: #c7d2fe;
+            background: linear-gradient(105deg, rgba(37, 99, 235, 0.13), rgba(124, 58, 237, 0.13));
+            font-family: var(--font-display);
+            font-size: 0.53rem;
+            font-weight: 900;
+            letter-spacing: 0.055em;
+            text-align: center;
+            text-transform: uppercase;
+            transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+        }
+
+        .search-selectable-card:hover .search-focus-hint {
+            color: #fff;
+            border-color: rgba(165, 180, 252, 0.44);
+            background: linear-gradient(105deg, rgba(37, 99, 235, 0.30), rgba(124, 58, 237, 0.28));
+        }
+
+        .search-focus-hint-icon {
+            color: #67e8f9;
+            font-size: 0.94rem;
+            line-height: 1;
+        }
+
+        .btn-paginacao {
+            border-color: rgba(129, 140, 248, 0.20);
+            background: linear-gradient(145deg, rgba(17, 27, 52, 0.94), rgba(9, 16, 34, 0.96));
+        }
+
+        .btn-paginacao:not(:disabled):hover {
+            border-color: rgba(96, 165, 250, 0.50);
+            background: linear-gradient(145deg, rgba(37, 99, 235, 0.22), rgba(79, 70, 229, 0.18));
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .search-selectable-card,
+            .search-focus-hint {
+                transition: none !important;
             }
         }
     </style>
