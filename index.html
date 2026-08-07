@@ -5478,6 +5478,130 @@
             transform: translateY(-50%) scale(1);
         }
 
+        /* Variacoes: mostra a principal e recolhe as descricoes adicionais. */
+        .enterprise-variation-secondary {
+            transform-origin: top center;
+        }
+
+        .enterprise-card-organized .enterprise-organized-descriptions .enterprise-variation-secondary[hidden] {
+            display: none !important;
+        }
+
+        .enterprise-organized-descriptions.variations-expanded .enterprise-variation-secondary {
+            animation: enterpriseVariationReveal 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        @keyframes enterpriseVariationReveal {
+            from { opacity: 0; transform: translateY(-7px) scale(0.99); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .enterprise-variation-toggle {
+            width: 100%;
+            min-height: 42px;
+            padding: 8px 10px;
+            display: grid;
+            grid-template-columns: 31px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 9px;
+            border: 1px solid rgba(34, 211, 238, 0.19);
+            border-radius: 11px;
+            color: #a5f3fc;
+            background:
+                linear-gradient(145deg, rgba(8, 47, 73, 0.28), rgba(3, 18, 35, 0.60)),
+                radial-gradient(180px circle at 0 0, rgba(34, 211, 238, 0.08), transparent 68%);
+            font-family: var(--font-display);
+            text-align: left;
+            transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .enterprise-variation-toggle:hover {
+            border-color: rgba(34, 211, 238, 0.44);
+            background: linear-gradient(145deg, rgba(8, 145, 178, 0.20), rgba(3, 18, 35, 0.72));
+            box-shadow: 0 10px 24px -18px rgba(34, 211, 238, 0.9);
+            transform: translateY(-1px);
+        }
+
+        .enterprise-variation-toggle:focus-visible {
+            outline: 2px solid rgba(34, 211, 238, 0.72);
+            outline-offset: 2px;
+        }
+
+        .enterprise-variation-toggle-icon {
+            width: 31px;
+            height: 31px;
+            display: grid;
+            place-items: center;
+            border-radius: 9px;
+            color: #67e8f9;
+            background: rgba(8, 145, 178, 0.13);
+            border: 1px solid rgba(34, 211, 238, 0.19);
+        }
+
+        .enterprise-variation-toggle-copy {
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .enterprise-variation-toggle-kicker {
+            color: #64748b;
+            font-size: 0.47rem;
+            font-weight: 900;
+            letter-spacing: 0.10em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-variation-toggle-label {
+            color: #cffafe;
+            font-size: 0.57rem;
+            font-weight: 900;
+            line-height: 1.25;
+            letter-spacing: 0.045em;
+            text-transform: uppercase;
+        }
+
+        .enterprise-variation-toggle-end {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .enterprise-variation-toggle-count {
+            min-width: 28px;
+            height: 24px;
+            padding: 0 7px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            color: #a7f3d0;
+            background: rgba(16, 185, 129, 0.10);
+            border: 1px solid rgba(16, 185, 129, 0.18);
+            font-family: var(--font-mono);
+            font-size: 0.55rem;
+            font-weight: 900;
+        }
+
+        .enterprise-variation-toggle-chevron {
+            width: 18px;
+            height: 18px;
+            display: grid;
+            place-items: center;
+            color: #67e8f9;
+            transition: transform 0.22s ease;
+        }
+
+        .enterprise-variation-toggle[aria-expanded="true"] {
+            border-color: rgba(16, 185, 129, 0.30);
+            background: linear-gradient(145deg, rgba(6, 78, 59, 0.22), rgba(3, 18, 35, 0.68));
+        }
+
+        .enterprise-variation-toggle[aria-expanded="true"] .enterprise-variation-toggle-chevron {
+            transform: rotate(180deg);
+        }
+
         /* Observation remains the same field, but is visually separated from descriptions. */
         .enterprise-card-organized .box-sub.enterprise-organized-observation {
             margin-top: 0;
@@ -5627,7 +5751,8 @@
             const icons = {
                 identification: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/><circle cx="18" cy="17" r="2"/></svg>',
                 context: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17h18"/><path d="M5 17l1-5h12l1 5"/><path d="M8 12l2-4h4l2 4"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>',
-                description: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg>'
+                description: '<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/></svg>',
+                variations: '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="12" height="12" rx="2"/><path d="M8 20h10a2 2 0 0 0 2-2V8"/><path d="M8 8h4"/><path d="M8 12h4"/></svg>'
             };
 
             const text = {
@@ -5739,10 +5864,11 @@
 
                 const descriptions = Array.from(container.querySelectorAll(':scope > .box-main'));
                 if (!container.querySelector(':scope > .enterprise-content-section-header')) {
+                    const hasVariations = descriptions.length > 1;
                     const header = makeHeader(
                         'description',
-                        text.descriptionsTitle,
-                        text.descriptionsSubtitle,
+                        hasVariations ? 'Variações do item' : 'Descrição do item',
+                        hasVariations ? `${descriptions.length} opções cadastradas` : text.descriptionsSubtitle,
                         descriptions.length,
                         'enterprise-content-section-header'
                     );
@@ -5760,6 +5886,64 @@
                     }
                     badge.textContent = String(index + 1).padStart(2, '0');
                 });
+
+                if (descriptions.length <= 1 || container.dataset.enterpriseVariationsReady === 'true') return;
+
+                container.dataset.enterpriseVariationsReady = 'true';
+                container.classList.add('has-variations', 'variations-collapsed');
+
+                const secondaryDescriptions = descriptions.slice(1);
+                secondaryDescriptions.forEach((description) => {
+                    description.classList.add('enterprise-variation-secondary');
+                    description.hidden = true;
+                    description.setAttribute('aria-hidden', 'true');
+                });
+
+                const toggle = document.createElement('button');
+                toggle.type = 'button';
+                toggle.className = 'enterprise-variation-toggle';
+                toggle.setAttribute('aria-expanded', 'false');
+                toggle.title = 'Mostrar todas as variações deste cadastro';
+                toggle.innerHTML = `
+                    <span class="enterprise-variation-toggle-icon">${icons.variations}</span>
+                    <span class="enterprise-variation-toggle-copy">
+                        <span class="enterprise-variation-toggle-kicker">Variações do item</span>
+                        <strong class="enterprise-variation-toggle-label"></strong>
+                    </span>
+                    <span class="enterprise-variation-toggle-end">
+                        <span class="enterprise-variation-toggle-count">+${secondaryDescriptions.length}</span>
+                        <span class="enterprise-variation-toggle-chevron" aria-hidden="true">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                        </span>
+                    </span>
+                `;
+
+                const label = toggle.querySelector('.enterprise-variation-toggle-label');
+                const count = toggle.querySelector('.enterprise-variation-toggle-count');
+                const updateToggle = (expanded) => {
+                    toggle.setAttribute('aria-expanded', String(expanded));
+                    toggle.title = expanded ? 'Recolher variações deste cadastro' : 'Mostrar todas as variações deste cadastro';
+                    label.textContent = expanded
+                        ? 'Ocultar variações'
+                        : `Ver ${secondaryDescriptions.length} ${secondaryDescriptions.length === 1 ? 'outra variação' : 'outras variações'}`;
+                    count.textContent = expanded ? String(descriptions.length).padStart(2, '0') : `+${secondaryDescriptions.length}`;
+                };
+
+                toggle.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const expanded = toggle.getAttribute('aria-expanded') !== 'true';
+                    container.classList.toggle('variations-expanded', expanded);
+                    container.classList.toggle('variations-collapsed', !expanded);
+                    secondaryDescriptions.forEach((description) => {
+                        description.hidden = !expanded;
+                        description.setAttribute('aria-hidden', String(!expanded));
+                    });
+                    updateToggle(expanded);
+                });
+
+                updateToggle(false);
+                container.appendChild(toggle);
             };
 
             const organizeObservation = (card) => {
