@@ -564,6 +564,146 @@
         #inputPesquisa { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); font-family: var(--font-mono); letter-spacing: 0.01em; }
         #inputPesquisa:focus { box-shadow: 0 0 0 4px rgba(59,130,246,0.15), 0 0 24px -6px rgba(34,211,238,0.6); border-color: var(--accent2) !important; }
 
+        .search-feedback {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            min-height: 20px;
+            margin: 8px 4px 0;
+            color: #94a3b8;
+            font-family: var(--font-mono);
+            font-size: 0.62rem;
+            font-weight: 800;
+            letter-spacing: 0.055em;
+            text-transform: uppercase;
+        }
+
+        .search-feedback.is-visible { display: flex; }
+
+        .search-feedback::before {
+            content: '';
+            width: 7px;
+            height: 7px;
+            flex: 0 0 7px;
+            border-radius: 50%;
+            background: #22d3ee;
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.7);
+        }
+
+        .search-feedback.is-empty { color: #fca5a5; }
+        .search-feedback.is-empty::before { background: #f87171; box-shadow: 0 0 10px rgba(248, 113, 113, 0.6); }
+
+        #listaItens.search-isolated {
+            grid-template-columns: minmax(300px, 720px) !important;
+            justify-content: center;
+        }
+
+        #listaItens.search-isolated .manual2-card,
+        #listaItens.search-isolated .generic-row {
+            width: 100%;
+            max-width: 720px;
+            justify-self: center;
+        }
+
+        #listaItens .search-primary-card {
+            border-color: rgba(34, 211, 238, 0.68) !important;
+            box-shadow:
+                0 0 0 1px rgba(34, 211, 238, 0.16),
+                0 24px 64px -28px rgba(34, 211, 238, 0.58) !important;
+        }
+
+        #listaItens.search-isolated .search-primary-card {
+            animation: searchResultFocus 0.38s cubic-bezier(0.16, 1, 0.3, 1) both;
+        }
+
+        /* Resultado unico: recolhe a interface e entrega a tela ao cadastro. */
+        body.search-focus-mode #mainHeader {
+            position: absolute;
+            inset: 0 0 auto;
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(-105%) !important;
+        }
+
+        body.search-focus-mode #zoomControls {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateX(90px);
+        }
+
+        body.search-focus-mode #listaItens.search-isolated {
+            width: 100%;
+            max-width: none;
+            min-height: 100vh;
+            margin-top: 0 !important;
+            padding: 70px 20px 28px !important;
+            grid-template-columns: minmax(0, min(960px, calc(100vw - 40px))) !important;
+            align-content: start;
+            justify-content: center;
+        }
+
+        body.search-focus-mode #listaItens.search-isolated .manual2-card,
+        body.search-focus-mode #listaItens.search-isolated .generic-row {
+            width: 100% !important;
+            max-width: 960px !important;
+            height: auto !important;
+            min-height: 0;
+            justify-self: center;
+            scroll-margin-top: 70px;
+        }
+
+        body.search-focus-mode #listaItens .search-primary-card:focus {
+            outline: none;
+        }
+
+        .focus-exit-label { display: none; }
+
+        body.search-focus-mode #btn-desfiltrar-flutuante {
+            top: 14px;
+            right: 16px;
+            bottom: auto;
+        }
+
+        body.search-focus-mode .btn-float-clear {
+            width: auto;
+            height: 42px;
+            padding: 0 14px 0 11px;
+            gap: 8px;
+            border-radius: 12px;
+            color: #fff;
+            background: rgba(15, 23, 42, 0.94);
+            border-color: rgba(96, 165, 250, 0.34);
+            box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.95), 0 0 20px -10px rgba(59, 130, 246, 0.75);
+            backdrop-filter: blur(14px);
+        }
+
+        body.search-focus-mode .btn-float-clear svg {
+            width: 18px;
+            height: 18px;
+            color: #93c5fd;
+        }
+
+        body.search-focus-mode .focus-exit-label {
+            display: inline;
+            font-family: var(--font-display);
+            font-size: 0.56rem;
+            font-weight: 900;
+            letter-spacing: 0.055em;
+            text-transform: uppercase;
+        }
+
+        body.search-focus-mode .btn-float-clear:hover {
+            color: #fff;
+            background: rgba(30, 64, 175, 0.94);
+            transform: translateY(-1px);
+        }
+
+        @keyframes searchResultFocus {
+            from { opacity: 0.35; transform: translateY(14px) scale(0.985); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
         .btn-l { transition: all 0.2s cubic-bezier(0.4,0,0.2,1) !important; }
         .btn-l:hover { transform: translateY(-3px) scale(1.08); box-shadow: 0 6px 14px -4px rgba(34,211,238,0.5); }
 
@@ -1522,10 +1662,11 @@
     </div>
 
     <div id="btn-desfiltrar-flutuante">
-        <button onclick="limparBusca()" class="btn-float-clear" title="LIMPAR TUDO">
+        <button onclick="limparBusca(); document.getElementById('inputPesquisa').focus()" class="btn-float-clear" title="LIMPAR TUDO">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12" />
             </svg>
+            <span class="focus-exit-label">Voltar à busca · Esc</span>
         </button>
     </div>
 
@@ -1572,6 +1713,7 @@
                         <button onclick="abrirModalGenerico()" id="btn-novo-generico" class="bg-amber-600 hover:bg-amber-500 text-white px-6 h-[68px] md:h-auto rounded-2xl font-black text-xs uppercase transition-all shadow-xl shadow-amber-600/20 flex items-center justify-center gap-2">Cód Genérico</button>
                     </div>
                 </div>
+                <div id="search-feedback" class="search-feedback" role="status" aria-live="polite"></div>
                 <label class="toggle-container">
                     <input type="checkbox" id="checkBuscaAvancada" class="hidden" onchange="window.resetarPaginaERenderizar()">
                     <div class="toggle-switch"></div>
@@ -2034,6 +2176,7 @@
             if (e.ctrlKey || e.altKey || e.metaKey || document.activeElement === inputPesquisa) return;
 
             if (e.key.length === 1) {
+                document.body.classList.remove('search-focus-mode');
                 mainHeader.classList.remove('header-hidden');
                 zoomControls.classList.remove('zoom-hidden');
                 filtroLetra = "";
@@ -2092,11 +2235,93 @@
         window.resetarPaginaERenderizar = () => { paginaAtual = 1; renderizar(); };
         window.mudarPagina = (delta) => { paginaAtual += delta; renderizar(); window.scrollTo({top: 0, behavior: 'smooth'}); };
 
+        const normalizarTextoBusca = (valor = '') => String(valor)
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLocaleLowerCase('pt-BR')
+            .replace(/[^a-z0-9]+/g, ' ')
+            .trim()
+            .replace(/\s+/g, ' ');
+
+        const pontuarCampoBusca = (valor, consulta) => {
+            const texto = normalizarTextoBusca(valor);
+            if (!texto || !consulta) return 0;
+            if (texto === consulta) return 1000;
+            if (texto.startsWith(`${consulta} `)) return 850;
+
+            const palavras = texto.split(' ');
+            const termos = consulta.split(' ').filter(Boolean);
+            if (!termos.length) return 0;
+
+            const todasExatas = termos.every((termo) => palavras.includes(termo));
+            if (todasExatas) return 720;
+
+            const todosNoInicioDePalavra = termos.every((termo) =>
+                palavras.some((palavra) => palavra.startsWith(termo))
+            );
+            return todosNoInicioDePalavra ? 600 : 0;
+        };
+
+        const pontuarItemBusca = (item, consulta, buscaTotal) => {
+            const campoPrincipal = contextoAtual === 'veiculos' ? item.veiculo : item.peca;
+            const pontuacaoPrincipal = pontuarCampoBusca(campoPrincipal, consulta);
+            let melhorPontuacao = pontuacaoPrincipal ? pontuacaoPrincipal + 400 : 0;
+
+            if (!buscaTotal) return melhorPontuacao;
+
+            const camposSecundarios = contextoAtual === 'veiculos'
+                ? [
+                    item.codOriginal,
+                    item.codGenerico,
+                    item.codBarras,
+                    item.aplicacao,
+                    item.marca,
+                    ...(item.descricao || '').split('\n'),
+                    item.obs
+                ]
+                : [item.marca];
+
+            camposSecundarios.forEach((campo, indice) => {
+                const pontuacao = pontuarCampoBusca(campo, consulta);
+                if (pontuacao) melhorPontuacao = Math.max(melhorPontuacao, pontuacao + Math.max(40, 180 - indice * 10));
+            });
+
+            return melhorPontuacao;
+        };
+
+        const atualizarFeedbackBusca = (consultaOriginal, quantidade, isolado = false) => {
+            const feedback = document.getElementById('search-feedback');
+            if (!feedback) return;
+
+            const consulta = normalizarTextoBusca(consultaOriginal);
+            feedback.classList.remove('is-visible', 'is-empty');
+            feedback.textContent = '';
+            if (!consultaOriginal.trim()) return;
+
+            feedback.classList.add('is-visible');
+            if (consulta.length < 2) {
+                feedback.textContent = 'Digite pelo menos 2 caracteres para uma busca precisa';
+                return;
+            }
+
+            if (!quantidade) {
+                feedback.classList.add('is-empty');
+                feedback.textContent = 'Nenhum cadastro relevante encontrado';
+                return;
+            }
+
+            feedback.textContent = isolado
+                ? 'Resultado localizado · exibindo somente o card encontrado'
+                : `${quantidade} resultado${quantidade === 1 ? '' : 's'} relevante${quantidade === 1 ? '' : 's'} · melhor correspondência primeiro`;
+        };
+
         window.renderizar = function() {
             const lista = document.getElementById('listaItens');
             const buscaInput = document.getElementById('inputPesquisa');
             const buscaAvancada = document.getElementById('checkBuscaAvancada').checked;
-            const busca = buscaInput.value.trim().toLowerCase();
+            const buscaOriginal = buscaInput.value.trim();
+            const busca = normalizarTextoBusca(buscaOriginal);
+            const buscaValida = busca.length >= 2;
             
             const temFiltro = busca || filtroLetra;
             document.getElementById('btnLimpar').style.display = temFiltro ? 'block' : 'none';
@@ -2107,18 +2332,53 @@
                 b.className = `btn-l transition-all p-2 rounded w-8 font-black ${isSelected ? 'bg-blue-600 text-white' : 'bg-slate-900 text-slate-600'}`;
             });
 
-            let termoAtivo = busca.length > 0 ? busca : filtroLetra.toLowerCase();
             const fonteDados = contextoAtual === 'veiculos' ? dadosOriginais : dadosGenericos;
 
-            const todosFiltrados = fonteDados.filter(item => {
-                if (contextoAtual === 'veiculos') {
-                    const v = (item.veiculo || "").toLowerCase(), d = (item.descricao || "").toLowerCase(), o = (item.obs || "").toLowerCase();
-                    return !termoAtivo ? true : (buscaAvancada ? (v.includes(termoAtivo) || d.includes(termoAtivo) || o.includes(termoAtivo)) : v.startsWith(termoAtivo));
-                } else {
-                    const p = (item.peca || "").toLowerCase(), m = (item.marca || "").toLowerCase();
-                    return !termoAtivo ? true : (buscaAvancada ? (p.includes(termoAtivo) || m.includes(termoAtivo)) : p.startsWith(termoAtivo));
-                }
-            }).sort((a,b) => (contextoAtual === 'veiculos' ? a.veiculo : a.peca).localeCompare(contextoAtual === 'veiculos' ? b.veiculo : b.peca));
+            let resultadosPontuados;
+            if (buscaValida) {
+                resultadosPontuados = fonteDados
+                    .map((item) => ({ item, pontuacao: pontuarItemBusca(item, busca, buscaAvancada) }))
+                    .filter((resultado) => resultado.pontuacao > 0)
+                    .sort((a, b) => {
+                        if (b.pontuacao !== a.pontuacao) return b.pontuacao - a.pontuacao;
+                        const nomeA = contextoAtual === 'veiculos' ? a.item.veiculo : a.item.peca;
+                        const nomeB = contextoAtual === 'veiculos' ? b.item.veiculo : b.item.peca;
+                        return String(nomeA || '').localeCompare(String(nomeB || ''), 'pt-BR');
+                    });
+            } else if (filtroLetra) {
+                const letra = normalizarTextoBusca(filtroLetra);
+                resultadosPontuados = fonteDados
+                    .filter((item) => normalizarTextoBusca(contextoAtual === 'veiculos' ? item.veiculo : item.peca).startsWith(letra))
+                    .map((item) => ({ item, pontuacao: 0 }));
+            } else {
+                resultadosPontuados = fonteDados.map((item) => ({ item, pontuacao: 0 }));
+            }
+
+            if (!buscaValida) {
+                resultadosPontuados.sort((a, b) => {
+                    const nomeA = contextoAtual === 'veiculos' ? a.item.veiculo : a.item.peca;
+                    const nomeB = contextoAtual === 'veiculos' ? b.item.veiculo : b.item.peca;
+                    return String(nomeA || '').localeCompare(String(nomeB || ''), 'pt-BR');
+                });
+            }
+
+            const melhor = resultadosPontuados[0];
+            const segundo = resultadosPontuados[1];
+            const resultadoDireto = Boolean(
+                buscaValida &&
+                melhor &&
+                melhor.pontuacao >= 1000 &&
+                (!segundo || melhor.pontuacao - segundo.pontuacao >= 120)
+            );
+
+            if (resultadoDireto) resultadosPontuados = [melhor];
+
+            const todosFiltrados = resultadosPontuados.map((resultado) => resultado.item);
+            const melhorResultadoId = buscaValida && todosFiltrados.length ? todosFiltrados[0].id : '';
+            const buscaIsolada = buscaValida && todosFiltrados.length === 1;
+            lista.classList.toggle('search-isolated', buscaIsolada);
+            document.body.classList.toggle('search-focus-mode', buscaIsolada);
+            atualizarFeedbackBusca(buscaOriginal, todosFiltrados.length, buscaIsolada);
 
             document.getElementById('contador-total').innerText = todosFiltrados.length;
             const totalPaginas = Math.ceil(todosFiltrados.length / itensPorPagina) || 1;
@@ -2151,7 +2411,7 @@
                         showCodOriginal || showCodGenerico || showAplicacao || showMarca || showCodBarras;
 
                     return `
-                    <div id="card-${item.id}" class="manual2-card card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''}">
+                    <div id="card-${item.id}" class="manual2-card card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''} ${item.id === melhorResultadoId ? 'search-primary-card' : ''}">
                         <div id="copy-overlay-${item.id}" class="copy-feedback">Copiado!</div>
                         <div class="manual2-title">${item.veiculo}</div>
 
@@ -2182,7 +2442,7 @@
                 }).join('');
             } else {
                 lista.innerHTML = filtrados.map(item => `
-                    <div id="card-${item.id}" class="generic-row card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''}">
+                    <div id="card-${item.id}" class="generic-row card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''} ${item.id === melhorResultadoId ? 'search-primary-card' : ''}">
                         <div class="font-black text-white text-sm uppercase">${item.peca}</div>
                         <div class="font-black text-blue-400 text-xs uppercase italic">${item.marca}</div>
                         <div class="flex gap-2 justify-end">
@@ -2190,6 +2450,19 @@
                             <button onclick="window.excluirItemGenerico('${item.id}')" class="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg></button>
                         </div>
                     </div>`).join('');
+            }
+
+            if (buscaIsolada && melhorResultadoId) {
+                requestAnimationFrame(() => {
+                    const cardEncontrado = document.getElementById(`card-${melhorResultadoId}`);
+                    buscaInput.blur();
+                    cardEncontrado?.setAttribute('tabindex', '-1');
+                    cardEncontrado?.scrollIntoView({
+                        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                        block: 'start'
+                    });
+                    cardEncontrado?.focus({ preventScroll: true });
+                });
             }
         }
 
@@ -2431,9 +2704,11 @@
         bar.innerHTML = `<button onclick="window.setFiltro('')" class="btn-l bg-blue-600 text-white p-2 rounded w-8 font-black">#</button>` + 
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => `<button onclick="window.setFiltro('${l}')" class="btn-l bg-slate-900 text-slate-600 p-2 rounded w-8 font-black">${l}</button>`).join("");
 
+        let temporizadorBusca = 0;
         document.getElementById('inputPesquisa').addEventListener('input', () => {
             if(document.getElementById('inputPesquisa').value.length > 0) filtroLetra = "";
-            window.resetarPaginaERenderizar();
+            clearTimeout(temporizadorBusca);
+            temporizadorBusca = setTimeout(window.resetarPaginaERenderizar, 180);
         });
         
         login();
@@ -3386,14 +3661,6 @@
             transform: translateY(-2px);
         }
 
-        mark.enterprise-search-mark {
-            padding: 0 2px;
-            border-radius: 3px;
-            color: #fff;
-            background: rgba(37, 99, 235, 0.72);
-            box-shadow: 0 0 0 1px rgba(147, 197, 253, 0.28);
-        }
-
         /* Modo compacto: mais itens sem sacrificar leitura */
         #listaItens.enterprise-view-compact .manual2-card.enterprise-card {
             min-height: 150px;
@@ -4097,18 +4364,29 @@
             }
         }
 
-        /* Controles flutuantes: nao ocupam espaco da grade e somem durante a pesquisa. */
-        #enterprise-view-toolbar {
-            position: fixed;
-            right: 76px;
-            bottom: 22px;
-            width: auto;
-            margin: 0;
-            padding: 6px;
-            border-radius: 15px;
-            z-index: 48;
-            transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+        /* Controles de formato fixados na barra alfabetica, logo depois da letra Z. */
+        #filtros-letras {
+            align-items: center;
         }
+
+        #enterprise-view-toolbar {
+            position: relative;
+            inset: auto;
+            flex: 0 0 auto;
+            flex-direction: row !important;
+            align-items: center !important;
+            width: auto;
+            margin: 0 0 0 7px;
+            padding: 3px;
+            border-radius: 11px;
+            z-index: 1;
+            opacity: 1;
+            visibility: visible;
+            transform: none;
+            transition: border-color 0.2s ease, background 0.2s ease;
+        }
+
+        #enterprise-view-toolbar::before { display: none; }
 
         #enterprise-view-toolbar .enterprise-toolbar-main {
             display: none;
@@ -4116,9 +4394,14 @@
 
         #enterprise-view-toolbar .enterprise-toolbar-controls,
         #enterprise-view-toolbar .enterprise-view-switch {
-            width: auto;
+            width: auto !important;
             flex-wrap: nowrap;
+            flex-direction: row !important;
+            justify-content: flex-start !important;
+            gap: 3px;
         }
+
+        #enterprise-view-toolbar .enterprise-view-switch { padding: 0; border: 0; background: transparent; }
 
         #enterprise-view-toolbar .enterprise-view-option,
         #enterprise-view-toolbar .enterprise-fit-button {
@@ -4127,6 +4410,7 @@
             height: 40px;
             min-height: 40px;
             padding: 0;
+            border-radius: 8px;
         }
 
         #enterprise-view-toolbar .enterprise-view-option span,
@@ -4135,17 +4419,16 @@
         }
 
         #enterprise-view-toolbar.is-searching {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            transform: translateY(12px);
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: none;
         }
 
         @media (max-width: 560px) {
             #enterprise-view-toolbar {
-                right: 66px;
-                bottom: 14px;
-                max-width: calc(100vw - 82px);
+                margin-left: 5px;
+                max-width: none;
             }
 
             #enterprise-view-toolbar .enterprise-view-option,
@@ -4231,8 +4514,10 @@
             };
 
             const buildToolbar = () => {
+                const letterBar = document.getElementById('filtros-letras');
                 if (document.getElementById('enterprise-view-toolbar')) {
                     state.toolbar = document.getElementById('enterprise-view-toolbar');
+                    if (letterBar && state.toolbar.parentElement !== letterBar) letterBar.appendChild(state.toolbar);
                     return;
                 }
 
@@ -4268,7 +4553,8 @@
                     </div>
                 `;
 
-                state.list.parentNode.insertBefore(toolbar, state.list);
+                if (letterBar) letterBar.appendChild(toolbar);
+                else state.list.parentNode.insertBefore(toolbar, state.list);
                 state.toolbar = toolbar;
 
                 toolbar.querySelectorAll('[data-view-mode]').forEach((button) => {
@@ -4644,59 +4930,14 @@
                 highlightGenericRow(row);
             };
 
-            const clearHighlights = (root) => {
-                root.querySelectorAll('mark.enterprise-search-mark').forEach((mark) => {
-                    mark.replaceWith(document.createTextNode(mark.textContent || ''));
-                });
-                root.normalize();
-            };
-
-            const highlightPlainElement = (element, term) => {
-                if (!element || !term) return;
-                const source = element.textContent || '';
-                const lowerSource = source.toLocaleLowerCase('pt-BR');
-                const lowerTerm = term.toLocaleLowerCase('pt-BR');
-                let cursor = 0;
-                let index = lowerSource.indexOf(lowerTerm, cursor);
-                if (index < 0) return;
-
-                const fragment = document.createDocumentFragment();
-                while (index >= 0) {
-                    if (index > cursor) fragment.appendChild(document.createTextNode(source.slice(cursor, index)));
-                    const mark = createElement('mark', 'enterprise-search-mark', source.slice(index, index + term.length));
-                    fragment.appendChild(mark);
-                    cursor = index + term.length;
-                    index = lowerSource.indexOf(lowerTerm, cursor);
-                }
-                if (cursor < source.length) fragment.appendChild(document.createTextNode(source.slice(cursor)));
-                element.replaceChildren(fragment);
-            };
-
             const highlightCard = (card) => {
-                const term = document.getElementById('inputPesquisa')?.value.trim() || '';
-                const normalized = term.toLocaleLowerCase('pt-BR');
-                if (card.dataset.enterpriseHighlight === normalized) return;
-                clearHighlights(card);
-                card.dataset.enterpriseHighlight = normalized;
-                if (term.length < 2) return;
-
-                const targets = [
-                    card.querySelector('.manual2-title'),
-                    ...card.querySelectorAll('.info-chip-value'),
-                    ...card.querySelectorAll('.box-main > span'),
-                    card.querySelector('.enterprise-observation-text')
-                ].filter(Boolean);
-                targets.forEach((element) => highlightPlainElement(element, term));
+                if (!card) return;
+                card.dataset.enterpriseHighlight = '';
             };
 
             const highlightGenericRow = (row) => {
-                const term = document.getElementById('inputPesquisa')?.value.trim() || '';
-                const normalized = term.toLocaleLowerCase('pt-BR');
-                if (row.dataset.enterpriseHighlight === normalized) return;
-                clearHighlights(row);
-                row.dataset.enterpriseHighlight = normalized;
-                if (term.length < 2) return;
-                row.querySelectorAll('.enterprise-generic-value').forEach((element) => highlightPlainElement(element, term));
+                if (!row) return;
+                row.dataset.enterpriseHighlight = '';
             };
 
             const extractCardData = (card) => {
