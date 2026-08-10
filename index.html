@@ -23,6 +23,8 @@
             --my: 50%;
             --font-display: 'Orbitron', 'Inter', sans-serif;
             --font-mono: 'JetBrains Mono', 'ui-monospace', monospace;
+            --floating-safe-right: clamp(24px, 4vw, 56px);
+            --floating-tools-offset: 68px;
         }
 
         * { box-sizing: border-box; }
@@ -140,7 +142,7 @@
             gap: 6px;
             position: fixed;
             top: 100px;
-            right: 25px;
+            right: var(--floating-safe-right);
             z-index: 100;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
             transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s;
@@ -455,8 +457,9 @@
 
         #btn-desfiltrar-flutuante {
             position: fixed;
-            bottom: 85px;
-            right: 32px;
+            top: 100px;
+            right: calc(var(--floating-safe-right) + var(--floating-tools-offset));
+            bottom: auto;
             z-index: 90;
             display: none;
         }
@@ -626,10 +629,10 @@
         }
 
         body.search-focus-mode #zoomControls {
-            opacity: 0;
-            visibility: hidden;
-            pointer-events: none;
-            transform: translateX(90px);
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: none;
         }
 
         body.search-focus-mode #listaItens.search-isolated {
@@ -660,21 +663,21 @@
         .focus-exit-label { display: none; }
 
         body.search-focus-mode #btn-desfiltrar-flutuante {
-            top: 14px;
-            right: 16px;
+            top: 100px;
+            right: calc(var(--floating-safe-right) + var(--floating-tools-offset));
             bottom: auto;
         }
 
         body.search-focus-mode .btn-float-clear {
-            width: auto;
-            height: 42px;
-            padding: 0 14px 0 11px;
-            gap: 8px;
-            border-radius: 12px;
+            width: 48px;
+            height: 48px;
+            padding: 0;
+            gap: 0;
+            border-radius: 14px;
             color: #fff;
-            background: rgba(15, 23, 42, 0.94);
-            border-color: rgba(96, 165, 250, 0.34);
-            box-shadow: 0 16px 34px -18px rgba(0, 0, 0, 0.95), 0 0 20px -10px rgba(59, 130, 246, 0.75);
+            background: #ef4444;
+            border-color: rgba(255,255,255,0.1);
+            box-shadow: 0 10px 20px -5px rgba(239, 68, 68, 0.4);
             backdrop-filter: blur(14px);
         }
 
@@ -685,18 +688,13 @@
         }
 
         body.search-focus-mode .focus-exit-label {
-            display: inline;
-            font-family: var(--font-display);
-            font-size: 0.56rem;
-            font-weight: 900;
-            letter-spacing: 0.055em;
-            text-transform: uppercase;
+            display: none;
         }
 
         body.search-focus-mode .btn-float-clear:hover {
             color: #fff;
-            background: rgba(30, 64, 175, 0.94);
-            transform: translateY(-1px);
+            background: #f87171;
+            transform: scale(1.1) rotate(90deg);
         }
 
         @keyframes searchResultFocus {
@@ -714,7 +712,14 @@
         .generic-row { transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important; }
         .generic-row:hover { border-color: rgba(34,211,238,0.5) !important; transform: translateX(4px); box-shadow: -4px 0 18px -6px rgba(34,211,238,0.4); }
 
-        #btn-topo { transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important; }
+        #btn-topo {
+            top: 100px;
+            right: calc(var(--floating-safe-right) + var(--floating-tools-offset)) !important;
+            bottom: auto !important;
+            z-index: 90;
+            transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+        }
+        body.has-active-filter #btn-topo { top: 156px; }
         #btn-topo:hover { box-shadow: 0 0 24px -2px rgba(59,130,246,0.8); transform: translateY(-3px); }
 
         /* Modais: entrada holográfica */
@@ -2005,6 +2010,7 @@
         let filtroLetra = "", idSalvoRecentemente = null, idParaExcluir = null, nivelZoom = 1.0, contextoAtual = 'veiculos';
         let paginaAtual = 1;
         let idCardFocadoBusca = null;
+        let buscaProntaParaFocoAutomatico = false;
         let cancelarEscutaAtual = null;
         let contextoEmEscuta = null;
         const itensPorPagina = 3;
@@ -2178,12 +2184,19 @@
             if (e.ctrlKey || e.altKey || e.metaKey || document.activeElement === inputPesquisa) return;
 
             if (e.key.length === 1) {
+                const valorAtual = inputPesquisa.value;
+                e.preventDefault();
                 document.body.classList.remove('search-focus-mode');
                 mainHeader.classList.remove('header-hidden');
                 zoomControls.classList.remove('zoom-hidden');
                 filtroLetra = "";
-                inputPesquisa.value = "";
+                idCardFocadoBusca = null;
+                buscaProntaParaFocoAutomatico = false;
                 inputPesquisa.focus();
+                const posicaoFinal = valorAtual.length;
+                inputPesquisa.setSelectionRange(posicaoFinal, posicaoFinal);
+                inputPesquisa.setRangeText(e.key, posicaoFinal, posicaoFinal, 'end');
+                inputPesquisa.dispatchEvent(new Event('input', { bubbles: true }));
             }
         });
 
@@ -2196,6 +2209,7 @@
         window.setContext = (ctx) => {
             contextoAtual = ctx;
             idCardFocadoBusca = null;
+            buscaProntaParaFocoAutomatico = false;
             document.getElementById('tab-veiculos').classList.toggle('active', ctx === 'veiculos');
             document.getElementById('tab-genericos').classList.toggle('active', ctx === 'genericos');
             document.getElementById('listaItens').className = ctx === 'genericos' ? 'p-8 max-w-[1900px] mx-auto grid-list-view mt-10' : 'p-8 max-w-[1900px] mx-auto gap-6 mt-10';
@@ -2239,6 +2253,8 @@
             document.getElementById('inputPesquisa').value = "";
             filtroLetra = "";
             idCardFocadoBusca = null;
+            buscaProntaParaFocoAutomatico = false;
+            clearTimeout(temporizadorFocoBusca);
             window.resetarPaginaERenderizar();
         };
 
@@ -2363,6 +2379,7 @@
             const temFiltro = busca || filtroLetra;
             document.getElementById('btnLimpar').style.display = temFiltro ? 'block' : 'none';
             document.getElementById('btn-desfiltrar-flutuante').style.display = temFiltro ? 'block' : 'none';
+            document.body.classList.toggle('has-active-filter', Boolean(temFiltro));
             
             document.querySelectorAll('.btn-l').forEach(b => {
                 const isSelected = (filtroLetra && b.innerText === filtroLetra) || (!filtroLetra && !busca && b.innerText === '#');
@@ -2399,15 +2416,6 @@
                 });
             }
 
-            const melhor = resultadosPontuados[0];
-            const segundo = resultadosPontuados[1];
-            const resultadoDireto = Boolean(
-                buscaValida &&
-                melhor &&
-                melhor.pontuacao >= 1000 &&
-                (!segundo || melhor.pontuacao - segundo.pontuacao >= 120)
-            );
-
             let focoManualAtivo = false;
             if (buscaValida && idCardFocadoBusca) {
                 const selecionado = resultadosPontuados.find((resultado) => resultado.item.id === idCardFocadoBusca);
@@ -2419,12 +2427,13 @@
                 }
             }
 
-            if (!focoManualAtivo && resultadoDireto) resultadosPontuados = [melhor];
-
             const todosFiltrados = resultadosPontuados.map((resultado) => resultado.item);
             const melhorResultadoId = buscaValida && todosFiltrados.length ? todosFiltrados[0].id : '';
-            const buscaIsolada = buscaValida && todosFiltrados.length === 1;
-            const modoSelecaoBusca = buscaValida && todosFiltrados.length > 1;
+            // Durante a digitacao, apenas filtra. Depois de uma pequena pausa,
+            // o unico resultado restante entra automaticamente em foco total.
+            const focoAutomaticoAtivo = buscaValida && buscaProntaParaFocoAutomatico && !focoManualAtivo && todosFiltrados.length === 1;
+            const buscaIsolada = buscaValida && (focoManualAtivo || focoAutomaticoAtivo);
+            const modoSelecaoBusca = buscaValida && !buscaIsolada && todosFiltrados.length > 0;
             lista.classList.toggle('search-isolated', buscaIsolada);
             document.body.classList.toggle('search-focus-mode', buscaIsolada);
             atualizarFeedbackBusca(buscaOriginal, todosFiltrados.length, buscaIsolada, focoManualAtivo);
@@ -2746,6 +2755,8 @@
         window.setFiltro = (l) => {
             document.getElementById('inputPesquisa').value = "";
             idCardFocadoBusca = null;
+            buscaProntaParaFocoAutomatico = false;
+            clearTimeout(temporizadorFocoBusca);
             filtroLetra = l; 
             resetarPaginaERenderizar();
         };
@@ -2758,11 +2769,18 @@
             "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map(l => `<button onclick="window.setFiltro('${l}')" class="btn-l bg-slate-900 text-slate-600 p-2 rounded w-8 font-black">${l}</button>`).join("");
 
         let temporizadorBusca = 0;
+        let temporizadorFocoBusca = 0;
         document.getElementById('inputPesquisa').addEventListener('input', () => {
             idCardFocadoBusca = null;
+            buscaProntaParaFocoAutomatico = false;
             if(document.getElementById('inputPesquisa').value.length > 0) filtroLetra = "";
             clearTimeout(temporizadorBusca);
+            clearTimeout(temporizadorFocoBusca);
             temporizadorBusca = setTimeout(window.resetarPaginaERenderizar, 180);
+            temporizadorFocoBusca = setTimeout(() => {
+                buscaProntaParaFocoAutomatico = true;
+                window.resetarPaginaERenderizar();
+            }, 600);
         });
         
         login();
