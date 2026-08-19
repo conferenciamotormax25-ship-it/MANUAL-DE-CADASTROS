@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual de Cadastro v3.9 - Visual Profissional</title>
+    <title>Manual de Cadastro v3.9.8 - Visual Profissional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -1822,6 +1822,21 @@
                 </label>
             </div>
 
+            <div class="relative team-message-field">
+                <div class="team-message-heading">
+                    <div>
+                        <span class="team-message-kicker">Comunicação interna · opcional</span>
+                        <label for="cfg-mensagem-colega" class="team-message-label">Deixar recado para um colega</label>
+                    </div>
+                    <span class="team-message-badge">Aparece no card</span>
+                </div>
+                <textarea id="cfg-mensagem-colega" maxlength="280" rows="3" autocomplete="off" placeholder="ESCREVA O RECADO..."></textarea>
+                <div class="team-message-footer">
+                    <span>O colega poderá marcar o recado como lido.</span>
+                    <span id="cfg-mensagem-contador">0/280</span>
+                </div>
+            </div>
+
             <div class="relative flex gap-3 mt-6">
                 <button onclick="window.confirmarConfigCard()" class="flex-[2] bg-cyan-600 hover:bg-cyan-500 p-4 rounded-xl font-black text-white uppercase text-sm">
                     Aplicar & Salvar
@@ -2096,6 +2111,7 @@
 
                 const payloadCfg = lerCfgCheckboxes();
                 const p = _pendingSave;
+                const recado = document.getElementById('cfg-mensagem-colega').value.trim();
 
                 // sempre inclui extrasConfig no documento
                 const payload = {
@@ -2110,6 +2126,14 @@
                     extrasConfig: payloadCfg,
                     atualizadoEm: serverTimestamp()
                 };
+
+                // Um novo recado sempre volta a ficar pendente para a equipe.
+                // Sem novo texto, uma mensagem anterior permanece com o estado atual.
+                if (recado) {
+                    payload.mensagemAlteracao = recado;
+                    payload.mensagemLida = false;
+                    payload.mensagemEm = serverTimestamp();
+                }
 
                 if (p.id) await updateDoc(doc(db, "cadastros_veiculos", p.id), payload);
                 else {
@@ -2129,6 +2153,11 @@
         };
 
         window.abrirModalConfigCard = () => {
+            const mensagem = document.getElementById('cfg-mensagem-colega');
+            if (mensagem) {
+                mensagem.value = '';
+                mensagem.dispatchEvent(new Event('input', { bubbles: true }));
+            }
             document.getElementById('modal-config-card').style.display = 'flex';
         };
 
@@ -2294,6 +2323,13 @@
             .trim()
             .replace(/\s+/g, ' ');
 
+        const escaparHtml = (valor = '') => String(valor)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+
         const pontuarCampoBusca = (valor, consulta) => {
             const texto = normalizarTextoBusca(valor);
             if (!texto || !consulta) return 0;
@@ -2458,6 +2494,8 @@
             if (contextoAtual === 'veiculos') {
                 lista.innerHTML = filtrados.map(item => {
                     const descs = (item.descricao || "").split('\n').filter(d => d.trim() !== "");
+                    const mensagemPendente = !!String(item.mensagemAlteracao || '').trim() && item.mensagemLida !== true;
+                    const mensagemSegura = mensagemPendente ? escaparHtml(item.mensagemAlteracao) : '';
 
                     const cfg = normalizeExtrasConfig(item);
                     const showCodOriginal = cfg.codOriginal && !!item.codOriginal;
@@ -2475,6 +2513,21 @@
                         <div id="copy-overlay-${item.id}" class="copy-feedback" role="status" aria-live="polite">✓ Copiado</div>
                         <div class="manual2-title">${item.veiculo}</div>
                         ${modoSelecaoBusca ? `<div class="search-focus-hint"><span class="search-focus-hint-icon">⌖</span><span>Clique neste card para abrir em foco total</span></div>` : ''}
+
+                        ${mensagemPendente ? `
+                        <aside class="team-update-note" role="status" aria-label="Recado de atualização ainda não lido">
+                            <span class="team-update-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg>
+                            </span>
+                            <span class="team-update-copy">
+                                <span class="team-update-kicker">Atualização para a equipe</span>
+                                <strong class="team-update-message">${mensagemSegura}</strong>
+                            </span>
+                            <button type="button" class="team-update-read" onclick="window.marcarMensagemLida('${item.id}', event)">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg>
+                                <span>Marcar como lida</span>
+                            </button>
+                        </aside>` : ''}
 
                         ${anyExtras ? `
                         <div class="extra-info-grid">
@@ -2750,6 +2803,34 @@
                 const ov = document.getElementById(`copy-overlay-${id}`);
                 ov.style.opacity = '1'; setTimeout(() => ov.style.opacity = '0', 800);
             });
+        };
+
+        window.marcarMensagemLida = async (id, event) => {
+            event?.preventDefault();
+            event?.stopPropagation();
+            const button = event?.currentTarget;
+            if (!id || button?.disabled) return;
+
+            if (button) {
+                button.disabled = true;
+                button.classList.add('is-saving');
+                const label = button.querySelector('span');
+                if (label) label.textContent = 'Salvando...';
+            }
+
+            try {
+                await updateDoc(doc(db, 'cadastros_veiculos', id), {
+                    mensagemLida: true,
+                    mensagemLidaEm: serverTimestamp()
+                });
+            } catch (error) {
+                if (button) {
+                    button.disabled = false;
+                    button.classList.remove('is-saving');
+                    const label = button.querySelector('span');
+                    if (label) label.textContent = 'Tentar novamente';
+                }
+            }
         };
 
         window.setFiltro = (l) => {
@@ -7711,6 +7792,3063 @@
                 if (init()) window.clearInterval(retry);
             }, 80);
             window.setTimeout(() => window.clearInterval(retry), 5000);
+        }
+    })();
+</script>
+
+<!-- =====================================================================
+     MODELO EDITAVEL DE DESCRICAO — v3.9.4
+     Estrutura profissional, personalizavel e persistida no navegador.
+====================================================================== -->
+<style id="professional-description-template-v394">
+    #modal .pro-description-template {
+        position: relative;
+        margin: 0 0 16px;
+        overflow: hidden;
+        border: 1px solid rgba(45, 212, 191, .42);
+        border-radius: 17px;
+        background:
+            radial-gradient(circle at 100% 0, rgba(45, 212, 191, .14), transparent 34%),
+            linear-gradient(145deg, rgba(5, 30, 41, .97), rgba(5, 18, 34, .98));
+        box-shadow: 0 16px 38px rgba(0, 0, 0, .24), inset 0 0 0 1px rgba(45, 212, 191, .045);
+    }
+
+    #modal .pro-description-template::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: linear-gradient(#34d399, #22d3ee);
+        box-shadow: 0 0 22px rgba(52, 211, 153, .55);
+    }
+
+    #modal .pro-template-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 15px 16px 13px 18px;
+        border-bottom: 1px solid rgba(45, 212, 191, .16);
+    }
+
+    #modal .pro-template-heading {
+        display: flex;
+        align-items: flex-start;
+        gap: 11px;
+        min-width: 0;
+    }
+
+    #modal .pro-template-mark {
+        display: grid;
+        flex: 0 0 37px;
+        width: 37px;
+        height: 37px;
+        place-items: center;
+        border: 1px solid rgba(52, 211, 153, .34);
+        border-radius: 11px;
+        color: #6ee7b7;
+        background: rgba(16, 185, 129, .13);
+        box-shadow: 0 8px 22px rgba(16, 185, 129, .10);
+    }
+
+    #modal .pro-template-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        margin-bottom: 4px;
+        color: #5eead4;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+
+    #modal .pro-template-kicker::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #34d399;
+        box-shadow: 0 0 10px rgba(52, 211, 153, .85);
+    }
+
+    #modal .pro-template-title {
+        margin: 0;
+        color: #f0fdfa;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: .035em;
+        line-height: 1.25;
+        text-transform: uppercase;
+    }
+
+    #modal .pro-template-helper {
+        max-width: 620px;
+        margin: 4px 0 0;
+        color: #8298aa;
+        font-size: 9px;
+        font-weight: 650;
+        line-height: 1.45;
+    }
+
+    #modal .pro-template-reset {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid rgba(148, 163, 184, .20);
+        border-radius: 9px;
+        color: #a8b7c9;
+        background: rgba(15, 23, 42, .64);
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .055em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        transition: border-color .2s ease, color .2s ease, background .2s ease;
+    }
+
+    #modal .pro-template-reset:hover {
+        color: #e2e8f0;
+        border-color: rgba(94, 234, 212, .42);
+        background: rgba(15, 118, 110, .14);
+    }
+
+    #modal .pro-template-body {
+        padding: 14px 16px 16px 18px;
+    }
+
+    #modal .pro-template-preview-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 9px;
+        margin-bottom: 13px;
+    }
+
+    #modal .pro-template-preview {
+        min-width: 0;
+        padding: 11px 12px;
+        border: 1px solid rgba(45, 212, 191, .17);
+        border-radius: 11px;
+        background: rgba(2, 6, 23, .62);
+    }
+
+    #modal .pro-template-preview.is-example {
+        border-color: rgba(96, 165, 250, .19);
+        background: rgba(3, 11, 27, .72);
+    }
+
+    #modal .pro-template-preview-label {
+        display: block;
+        margin-bottom: 6px;
+        color: #5eead4;
+        font-size: 7px;
+        font-weight: 900;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+    }
+
+    #modal .pro-template-preview.is-example .pro-template-preview-label {
+        color: #93c5fd;
+    }
+
+    #modal .pro-template-preview-value {
+        display: block;
+        overflow-wrap: anywhere;
+        color: #d1fae5;
+        font-family: var(--font-mono);
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1.55;
+        text-transform: uppercase;
+    }
+
+    #modal .pro-template-preview.is-example .pro-template-preview-value {
+        color: #dbeafe;
+    }
+
+    #modal .pro-template-editor-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: 0 0 8px;
+    }
+
+    #modal .pro-template-editor-label {
+        color: #94a3b8;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+    }
+
+    #modal .pro-template-part-count {
+        color: #5eead4;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .055em;
+        text-transform: uppercase;
+    }
+
+    #modal .pro-template-parts {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    #modal .pro-template-empty {
+        grid-column: 1 / -1;
+        padding: 18px;
+        border: 1px dashed rgba(94, 234, 212, .28);
+        border-radius: 11px;
+        color: #71869a;
+        text-align: center;
+        font-size: 9px;
+        font-weight: 750;
+        line-height: 1.45;
+    }
+
+    #modal .pro-template-part {
+        display: grid;
+        grid-template-columns: 27px minmax(0, 1fr) auto;
+        grid-template-areas:
+            "order label actions"
+            "order example actions";
+        align-items: center;
+        gap: 6px 8px;
+        min-width: 0;
+        padding: 8px;
+        border: 1px solid rgba(100, 116, 139, .20);
+        border-radius: 11px;
+        background: rgba(2, 10, 23, .56);
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    #modal .pro-template-part:focus-within {
+        border-color: rgba(52, 211, 153, .48);
+        box-shadow: 0 0 0 3px rgba(16, 185, 129, .07);
+    }
+
+    #modal .pro-template-order {
+        grid-area: order;
+        display: grid;
+        width: 27px;
+        height: 27px;
+        place-items: center;
+        border: 1px solid rgba(52, 211, 153, .21);
+        border-radius: 8px;
+        color: #6ee7b7;
+        background: rgba(16, 185, 129, .09);
+        font-family: var(--font-mono);
+        font-size: 8px;
+        font-weight: 900;
+    }
+
+    #modal .pro-template-input-wrap {
+        position: relative;
+        min-width: 0;
+    }
+
+    #modal .pro-template-input-wrap.is-label { grid-area: label; }
+    #modal .pro-template-input-wrap.is-example { grid-area: example; }
+
+    #modal .pro-template-input-caption {
+        position: absolute;
+        top: 4px;
+        left: 8px;
+        z-index: 1;
+        color: #526277;
+        font-size: 6px;
+        font-weight: 900;
+        letter-spacing: .08em;
+        pointer-events: none;
+        text-transform: uppercase;
+    }
+
+    #modal .pro-template-input {
+        width: 100%;
+        min-width: 0;
+        height: 37px;
+        padding: 14px 8px 4px !important;
+        border: 1px solid rgba(71, 85, 105, .46) !important;
+        border-radius: 8px !important;
+        outline: none;
+        color: #dffcf4 !important;
+        background: rgba(2, 6, 23, .82) !important;
+        font-family: var(--font-mono);
+        font-size: 8px !important;
+        font-weight: 800 !important;
+        text-transform: uppercase;
+    }
+
+    #modal .pro-template-input.is-example {
+        color: #bfdbfe !important;
+    }
+
+    #modal .pro-template-input:focus {
+        border-color: #34d399 !important;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, .10) !important;
+    }
+
+    #modal .pro-template-part-actions {
+        grid-area: actions;
+        display: grid;
+        grid-template-columns: repeat(2, 25px);
+        gap: 4px;
+    }
+
+    #modal .pro-template-icon-btn {
+        display: grid;
+        width: 25px;
+        height: 25px;
+        place-items: center;
+        border: 1px solid rgba(100, 116, 139, .22);
+        border-radius: 7px;
+        color: #8090a5;
+        background: rgba(30, 41, 59, .56);
+        transition: color .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    #modal .pro-template-icon-btn:hover:not(:disabled) {
+        color: #dbeafe;
+        border-color: rgba(96, 165, 250, .45);
+        background: rgba(30, 64, 175, .18);
+    }
+
+    #modal .pro-template-icon-btn.is-remove {
+        grid-column: 1 / -1;
+        width: 54px;
+        color: #9b7e89;
+    }
+
+    #modal .pro-template-icon-btn.is-remove:hover {
+        color: #fecdd3;
+        border-color: rgba(251, 113, 133, .45);
+        background: rgba(159, 18, 57, .18);
+    }
+
+    #modal .pro-template-icon-btn:disabled {
+        opacity: .24;
+        cursor: default;
+    }
+
+    #modal .pro-template-actions {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-top: 11px;
+        padding-top: 11px;
+        border-top: 1px solid rgba(45, 212, 191, .13);
+    }
+
+    #modal .pro-template-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 0 11px;
+        border: 1px solid rgba(94, 234, 212, .28);
+        border-radius: 9px;
+        color: #99f6e4;
+        background: rgba(13, 148, 136, .10);
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .055em;
+        text-transform: uppercase;
+        transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    #modal .pro-template-action:hover:not(:disabled) {
+        border-color: rgba(94, 234, 212, .62);
+        background: rgba(13, 148, 136, .20);
+        transform: translateY(-1px);
+    }
+
+    #modal .pro-template-action.is-primary {
+        margin-left: auto;
+        color: #fff;
+        border-color: rgba(52, 211, 153, .62);
+        background: linear-gradient(135deg, #059669, #0f766e);
+        box-shadow: 0 8px 20px rgba(5, 150, 105, .16);
+    }
+
+    #modal .pro-template-action:disabled {
+        opacity: .38;
+        cursor: default;
+    }
+
+    #modal .pro-template-status {
+        min-height: 15px;
+        margin-top: 8px;
+        color: #6ee7b7;
+        font-size: 8px;
+        font-weight: 800;
+        letter-spacing: .035em;
+    }
+
+    @media (max-width: 760px) {
+        #modal .pro-template-preview-grid,
+        #modal .pro-template-parts {
+            grid-template-columns: 1fr;
+        }
+
+        #modal .pro-template-header {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        #modal .pro-template-reset {
+            align-self: flex-start;
+        }
+
+        #modal .pro-template-action.is-primary {
+            margin-left: 0;
+        }
+    }
+
+    @media (max-width: 480px) {
+        #modal .pro-template-body {
+            padding: 12px 12px 14px 14px;
+        }
+
+        #modal .pro-template-part {
+            grid-template-columns: 25px minmax(0, 1fr);
+            grid-template-areas:
+                "order label"
+                "order example"
+                "actions actions";
+        }
+
+        #modal .pro-template-part-actions {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        #modal .pro-template-icon-btn.is-remove {
+            width: 32px;
+        }
+
+        #modal .pro-template-actions > button {
+            flex: 1 1 145px;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        #modal .pro-description-template *,
+        #modal .pro-description-template *::before {
+            scroll-behavior: auto !important;
+            transition: none !important;
+        }
+    }
+</style>
+
+<script id="professional-description-template-v394-script">
+    (() => {
+        /* Substituído na v3.9.5 por um cartão compacto com editor em janela separada. */
+        return;
+        const STORAGE_KEY = 'motormax.description-template.v1';
+        const MAX_PARTS = 12;
+        const defaults = [
+            { label: 'Nome da peça', example: 'Disco de freio' },
+            { label: 'Posição', example: 'Dianteiro' },
+            { label: 'Tipo / característica', example: 'Ventilado' },
+            { label: 'Medidas', example: '257 × 24 mm' },
+            { label: 'Marca', example: 'HOS' },
+            { label: 'Código universal', example: 'HF30' }
+        ];
+
+        const icons = {
+            template: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h7"/></svg>',
+            reset: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>',
+            plus: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>',
+            structure: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>',
+            example: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>',
+            up: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>',
+            down: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+            trash: '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg>'
+        };
+
+        const cloneDefaults = () => defaults.map(part => ({ ...part }));
+        const clean = (value, limit) => String(value || '').trim().slice(0, limit);
+        const normalizeParts = (value) => {
+            if (!Array.isArray(value)) return cloneDefaults();
+            return value.slice(0, MAX_PARTS).map(part => ({
+                label: clean(part && part.label, 44),
+                example: clean(part && part.example, 100)
+            }));
+        };
+
+        const loadParts = () => {
+            try {
+                const stored = window.localStorage.getItem(STORAGE_KEY);
+                return stored === null ? cloneDefaults() : normalizeParts(JSON.parse(stored));
+            } catch (error) {
+                return cloneDefaults();
+            }
+        };
+
+        const init = () => {
+            if (window.__professionalDescriptionTemplateReady) return true;
+
+            const descriptionBlock = document.querySelector('#modal .pro-description-block');
+            const descriptionsContainer = document.getElementById('container-descricoes');
+            if (!descriptionBlock || !descriptionsContainer || typeof window.adicionarCampoDescricao !== 'function') {
+                return false;
+            }
+
+            window.__professionalDescriptionTemplateReady = true;
+            let parts = loadParts();
+            let statusTimer = null;
+
+            const panel = document.createElement('section');
+            panel.id = 'pro-description-template';
+            panel.className = 'pro-description-template';
+            panel.setAttribute('aria-labelledby', 'pro-description-template-title');
+            panel.innerHTML =
+                '<div class="pro-template-header">' +
+                    '<div class="pro-template-heading">' +
+                        '<span class="pro-template-mark">' + icons.template + '</span>' +
+                        '<div>' +
+                            '<span class="pro-template-kicker">Modelo editável em destaque</span>' +
+                            '<h4 id="pro-description-template-title" class="pro-template-title">Padrão profissional de descrição</h4>' +
+                            '<p class="pro-template-helper">Edite os nomes e exemplos, exclua o que não precisar ou inclua novas partes. A ordem abaixo será a ordem da descrição.</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<button type="button" class="pro-template-reset" data-template-reset>' + icons.reset + '<span>Restaurar padrão</span></button>' +
+                '</div>' +
+                '<div class="pro-template-body">' +
+                    '<div class="pro-template-preview-grid">' +
+                        '<div class="pro-template-preview">' +
+                            '<span class="pro-template-preview-label">Estrutura do modelo</span>' +
+                            '<strong class="pro-template-preview-value" data-template-structure></strong>' +
+                        '</div>' +
+                        '<div class="pro-template-preview is-example">' +
+                            '<span class="pro-template-preview-label">Exemplo preenchido</span>' +
+                            '<strong class="pro-template-preview-value" data-template-example></strong>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="pro-template-editor-head">' +
+                        '<span class="pro-template-editor-label">Partes da descrição</span>' +
+                        '<span class="pro-template-part-count" data-template-count></span>' +
+                    '</div>' +
+                    '<div class="pro-template-parts" data-template-parts></div>' +
+                    '<div class="pro-template-actions">' +
+                        '<button type="button" class="pro-template-action" data-template-add>' + icons.plus + '<span>Adicionar parte</span></button>' +
+                        '<button type="button" class="pro-template-action" data-template-use="structure">' + icons.structure + '<span>Usar estrutura</span></button>' +
+                        '<button type="button" class="pro-template-action is-primary" data-template-use="example">' + icons.example + '<span>Usar exemplo</span></button>' +
+                    '</div>' +
+                    '<div class="pro-template-status" data-template-status role="status" aria-live="polite"></div>' +
+                '</div>';
+
+            descriptionBlock.insertBefore(panel, descriptionsContainer);
+
+            const partsContainer = panel.querySelector('[data-template-parts]');
+            const structurePreview = panel.querySelector('[data-template-structure]');
+            const examplePreview = panel.querySelector('[data-template-example]');
+            const count = panel.querySelector('[data-template-count]');
+            const status = panel.querySelector('[data-template-status]');
+            const addButton = panel.querySelector('[data-template-add]');
+            const useButtons = Array.from(panel.querySelectorAll('[data-template-use]'));
+
+            const saveParts = () => {
+                try {
+                    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(parts));
+                } catch (error) {
+                    /* O modelo continua funcionando mesmo quando o navegador bloqueia o armazenamento. */
+                }
+            };
+
+            const getStructure = () => parts
+                .map(part => clean(part.label, 44))
+                .filter(Boolean)
+                .map(label => '[' + label + ']')
+                .join(' + ');
+
+            const getExample = () => parts
+                .map(part => {
+                    const label = clean(part.label, 44);
+                    const example = clean(part.example, 100);
+                    return example || (label ? '[' + label + ']' : '');
+                })
+                .filter(Boolean)
+                .join(' + ');
+
+            const showStatus = (message) => {
+                status.textContent = message;
+                window.clearTimeout(statusTimer);
+                statusTimer = window.setTimeout(() => {
+                    status.textContent = '';
+                }, 3200);
+            };
+
+            const refreshPreview = () => {
+                const structure = getStructure();
+                const example = getExample();
+                structurePreview.textContent = structure || 'ADICIONE UMA PARTE PARA MONTAR O MODELO';
+                examplePreview.textContent = example || 'O EXEMPLO APARECERÁ AQUI';
+                count.textContent = parts.length + (parts.length === 1 ? ' parte' : ' partes');
+                addButton.disabled = parts.length >= MAX_PARTS;
+                useButtons.forEach(button => {
+                    button.disabled = !structure;
+                });
+            };
+
+            const persistAndRefresh = () => {
+                saveParts();
+                refreshPreview();
+            };
+
+            const renderParts = (focusIndex = -1) => {
+                partsContainer.replaceChildren();
+
+                if (!parts.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'pro-template-empty';
+                    empty.textContent = 'Nenhuma parte ativa. Clique em “Adicionar parte” para criar seu próprio modelo.';
+                    partsContainer.appendChild(empty);
+                }
+
+                parts.forEach((part, index) => {
+                    const item = document.createElement('article');
+                    item.className = 'pro-template-part';
+
+                    const order = document.createElement('span');
+                    order.className = 'pro-template-order';
+                    order.textContent = String(index + 1).padStart(2, '0');
+                    order.setAttribute('aria-label', 'Parte ' + (index + 1));
+
+                    const makeInput = (kind, caption, value, maxLength) => {
+                        const wrap = document.createElement('label');
+                        wrap.className = 'pro-template-input-wrap ' + (kind === 'label' ? 'is-label' : 'is-example');
+                        const captionNode = document.createElement('span');
+                        captionNode.className = 'pro-template-input-caption';
+                        captionNode.textContent = caption;
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.className = 'pro-template-input' + (kind === 'example' ? ' is-example' : '');
+                        input.value = value;
+                        input.maxLength = maxLength;
+                        input.autocomplete = 'off';
+                        input.dataset.templateField = kind;
+                        if (kind === 'label') input.dataset.templatePartLabel = '';
+                        input.setAttribute('aria-label', caption + ' da parte ' + (index + 1));
+                        input.addEventListener('input', () => {
+                            parts[index][kind] = input.value;
+                            persistAndRefresh();
+                        });
+                        wrap.append(captionNode, input);
+                        return wrap;
+                    };
+
+                    const labelInput = makeInput('label', 'Nome do campo', part.label, 44);
+                    const exampleInput = makeInput('example', 'Exemplo', part.example, 100);
+                    const actions = document.createElement('div');
+                    actions.className = 'pro-template-part-actions';
+
+                    const makeIconButton = (className, title, iconMarkup, disabled, handler) => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'pro-template-icon-btn' + className;
+                        button.title = title;
+                        button.setAttribute('aria-label', title);
+                        button.innerHTML = iconMarkup;
+                        button.disabled = disabled;
+                        button.addEventListener('click', handler);
+                        return button;
+                    };
+
+                    const up = makeIconButton('', 'Mover parte para cima', icons.up, index === 0, () => {
+                        [parts[index - 1], parts[index]] = [parts[index], parts[index - 1]];
+                        persistAndRefresh();
+                        renderParts(index - 1);
+                    });
+                    const down = makeIconButton('', 'Mover parte para baixo', icons.down, index === parts.length - 1, () => {
+                        [parts[index + 1], parts[index]] = [parts[index], parts[index + 1]];
+                        persistAndRefresh();
+                        renderParts(index + 1);
+                    });
+                    const remove = makeIconButton(' is-remove', 'Excluir parte', icons.trash, false, () => {
+                        parts.splice(index, 1);
+                        persistAndRefresh();
+                        renderParts(Math.min(index, parts.length - 1));
+                        showStatus('Parte excluída do modelo.');
+                    });
+
+                    actions.append(up, down, remove);
+                    item.append(order, labelInput, exampleInput, actions);
+                    partsContainer.appendChild(item);
+                });
+
+                refreshPreview();
+                if (focusIndex >= 0) {
+                    const inputs = partsContainer.querySelectorAll('[data-template-part-label]');
+                    const target = inputs[Math.min(focusIndex, inputs.length - 1)];
+                    if (target) {
+                        target.focus({ preventScroll: true });
+                        target.select();
+                    }
+                }
+            };
+
+            const insertDescription = (mode) => {
+                const value = mode === 'example' ? getExample() : getStructure();
+                if (!value) {
+                    showStatus('Adicione pelo menos uma parte ao modelo.');
+                    return;
+                }
+
+                const emptyField = Array.from(descriptionsContainer.querySelectorAll('.input-desc-item'))
+                    .find(field => !field.value.trim());
+
+                if (emptyField) {
+                    emptyField.value = value;
+                    emptyField.dispatchEvent(new Event('input', { bubbles: true }));
+                    emptyField.focus();
+                    emptyField.setSelectionRange(emptyField.value.length, emptyField.value.length);
+                    emptyField.closest('.pro-description-item')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    window.adicionarCampoDescricao(value);
+                }
+
+                showStatus(mode === 'example'
+                    ? 'Exemplo inserido. Agora ajuste os dados da peça.'
+                    : 'Estrutura inserida. Substitua os campos entre colchetes.');
+            };
+
+            panel.querySelector('[data-template-reset]').addEventListener('click', () => {
+                parts = cloneDefaults();
+                persistAndRefresh();
+                renderParts();
+                showStatus('Modelo profissional restaurado.');
+            });
+
+            addButton.addEventListener('click', () => {
+                if (parts.length >= MAX_PARTS) {
+                    showStatus('O modelo aceita até ' + MAX_PARTS + ' partes.');
+                    return;
+                }
+                parts.push({ label: 'Novo campo', example: '' });
+                persistAndRefresh();
+                renderParts(parts.length - 1);
+                panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            });
+
+            useButtons.forEach(button => {
+                button.addEventListener('click', () => insertDescription(button.dataset.templateUse));
+            });
+
+            renderParts();
+            window.editarModeloDescricao = () => panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return true;
+        };
+
+        if (!init()) {
+            const retry = window.setInterval(() => {
+                if (init()) window.clearInterval(retry);
+            }, 80);
+            window.setTimeout(() => window.clearInterval(retry), 6000);
+        }
+    })();
+</script>
+
+<!-- =====================================================================
+     MODELO INTELIGENTE + RECADOS DE EQUIPE — v3.9.6
+====================================================================== -->
+<style id="simple-description-and-team-notes-v395">
+    /* Recado opcional no último passo do salvamento */
+    #modal-config-card > div {
+        max-height: 94vh;
+        overflow-y: auto;
+    }
+
+    .team-message-field {
+        margin-top: 14px;
+        padding: 14px;
+        border: 1px solid rgba(96, 165, 250, .24);
+        border-radius: 15px;
+        background:
+            radial-gradient(circle at 100% 0, rgba(59, 130, 246, .10), transparent 42%),
+            rgba(15, 23, 42, .52);
+    }
+
+    .team-message-heading,
+    .team-message-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+
+    .team-message-kicker {
+        display: block;
+        margin-bottom: 3px;
+        color: #60a5fa;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .10em;
+        text-transform: uppercase;
+    }
+
+    .team-message-label {
+        display: block;
+        color: #f8fafc;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: .035em;
+        text-transform: uppercase;
+    }
+
+    .team-message-badge {
+        flex: 0 0 auto;
+        padding: 5px 8px;
+        border: 1px solid rgba(96, 165, 250, .27);
+        border-radius: 999px;
+        color: #93c5fd;
+        background: rgba(37, 99, 235, .10);
+        font-size: 7px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    #cfg-mensagem-colega {
+        width: 100%;
+        min-height: 82px;
+        margin-top: 10px;
+        padding: 12px 13px;
+        resize: vertical;
+        border: 1px solid rgba(71, 85, 105, .68);
+        border-radius: 11px;
+        outline: none;
+        color: #dbeafe;
+        background: rgba(2, 6, 23, .82);
+        font-family: var(--font-sans);
+        font-size: 11px;
+        font-weight: 700;
+        line-height: 1.5;
+        text-transform: uppercase;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    #cfg-mensagem-colega:focus {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, .12);
+    }
+
+    #cfg-mensagem-colega::placeholder { color: #475569; }
+
+    .team-message-footer {
+        margin-top: 7px;
+        color: #64748b;
+        font-size: 8px;
+        font-weight: 700;
+    }
+
+    /* Aviso compartilhado exibido no card até ser marcado como lido */
+    .team-update-note {
+        display: grid;
+        grid-template-columns: 37px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        margin: 2px 0 4px;
+        padding: 10px 11px;
+        border: 1px solid rgba(251, 191, 36, .30);
+        border-left: 3px solid #f59e0b;
+        border-radius: 10px 13px 13px 10px;
+        background:
+            radial-gradient(circle at 0 0, rgba(245, 158, 11, .10), transparent 38%),
+            linear-gradient(145deg, rgba(69, 39, 8, .25), rgba(15, 23, 42, .70));
+        box-shadow: 0 9px 24px -20px rgba(245, 158, 11, .9);
+    }
+
+    .team-update-icon {
+        display: grid;
+        width: 37px;
+        height: 37px;
+        place-items: center;
+        border: 1px solid rgba(251, 191, 36, .30);
+        border-radius: 10px;
+        color: #fbbf24;
+        background: rgba(245, 158, 11, .12);
+    }
+
+    .team-update-icon svg { width: 17px; height: 17px; }
+
+    .team-update-copy {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .team-update-kicker {
+        color: #fbbf24;
+        font-size: 7px;
+        font-weight: 900;
+        letter-spacing: .10em;
+        text-transform: uppercase;
+    }
+
+    .team-update-message {
+        overflow-wrap: anywhere;
+        color: #fef3c7;
+        font-size: 10px;
+        font-weight: 800;
+        line-height: 1.45;
+        text-transform: uppercase;
+    }
+
+    .team-update-read {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 32px;
+        padding: 0 10px;
+        border: 1px solid rgba(251, 191, 36, .30);
+        border-radius: 9px;
+        color: #fde68a;
+        background: rgba(120, 53, 15, .18);
+        font-size: 7px;
+        font-weight: 900;
+        letter-spacing: .045em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        transition: border-color .2s ease, background .2s ease, transform .2s ease;
+    }
+
+    .team-update-read svg { width: 13px; height: 13px; }
+
+    .team-update-read:hover:not(:disabled) {
+        border-color: rgba(251, 191, 36, .64);
+        background: rgba(180, 83, 9, .26);
+        transform: translateY(-1px);
+    }
+
+    .team-update-read:disabled { opacity: .58; cursor: wait; }
+
+    #listaItens.enterprise-view-list .enterprise-card .team-update-note {
+        grid-area: team-note;
+        margin: 0;
+    }
+
+    #listaItens.enterprise-view-list .manual2-card.enterprise-card:has(> .team-update-note) {
+        grid-template-areas:
+            "header team-note actions"
+            "header extras actions"
+            "header descriptions actions"
+            "header observation actions";
+    }
+
+    /* Cartão compacto do modelo, sem o editor misturado ao formulário */
+    #modal .simple-description-template {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        margin: 0 0 14px;
+        padding: 13px 14px;
+        border: 1px solid rgba(45, 212, 191, .28);
+        border-radius: 14px;
+        background:
+            radial-gradient(circle at 0 0, rgba(45, 212, 191, .10), transparent 40%),
+            linear-gradient(145deg, rgba(5, 28, 39, .86), rgba(5, 16, 31, .92));
+        box-shadow: 0 12px 30px -22px rgba(45, 212, 191, .9);
+    }
+
+    #modal .simple-template-icon {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border: 1px solid rgba(45, 212, 191, .30);
+        border-radius: 12px;
+        color: #5eead4;
+        background: rgba(13, 148, 136, .12);
+    }
+
+    #modal .simple-template-icon svg { width: 19px; height: 19px; }
+    #modal .simple-template-copy { min-width: 0; }
+
+    #modal .simple-template-heading {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 5px;
+    }
+
+    #modal .simple-template-kicker {
+        color: #5eead4;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .10em;
+        text-transform: uppercase;
+    }
+
+    #modal .simple-template-custom-badge {
+        display: none;
+        padding: 3px 6px;
+        border-radius: 999px;
+        color: #bfdbfe;
+        background: rgba(59, 130, 246, .13);
+        font-size: 6px;
+        font-weight: 900;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+
+    #modal .simple-template-custom-badge.is-visible { display: inline-flex; }
+
+    #modal .simple-template-structure {
+        display: block;
+        overflow: hidden;
+        color: #d1fae5;
+        font-family: var(--font-mono);
+        font-size: 9px;
+        font-weight: 800;
+        line-height: 1.45;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    #modal .simple-template-example {
+        display: block;
+        margin-top: 4px;
+        overflow: hidden;
+        color: #708399;
+        font-size: 8px;
+        font-weight: 700;
+        line-height: 1.4;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    #modal .simple-template-actions {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+    }
+
+    #modal .simple-template-button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 34px;
+        padding: 0 10px;
+        border: 1px solid rgba(94, 234, 212, .28);
+        border-radius: 9px;
+        color: #99f6e4;
+        background: rgba(13, 148, 136, .10);
+        font-size: 7px;
+        font-weight: 900;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        white-space: nowrap;
+        transition: transform .2s ease, border-color .2s ease, background .2s ease;
+    }
+
+    #modal .simple-template-button:hover {
+        border-color: rgba(94, 234, 212, .62);
+        background: rgba(13, 148, 136, .20);
+        transform: translateY(-1px);
+    }
+
+    #modal .simple-template-button.is-edit {
+        color: #bfdbfe;
+        border-color: rgba(96, 165, 250, .26);
+        background: rgba(37, 99, 235, .10);
+    }
+
+    #modal .simple-template-button svg { width: 13px; height: 13px; }
+
+    #modal .simple-template-status {
+        grid-column: 2 / -1;
+        min-height: 0;
+        color: #6ee7b7;
+        font-size: 7px;
+        font-weight: 800;
+    }
+
+    /* Janela separada para editar o modelo */
+    #modal-modelo-descricao {
+        position: fixed;
+        inset: 0;
+        z-index: 4200;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: rgba(1, 5, 14, .88);
+        backdrop-filter: blur(14px);
+    }
+
+    #modal-modelo-descricao.is-open { display: flex; }
+
+    .simple-template-modal-shell {
+        width: min(100%, 620px);
+        max-height: 92vh;
+        overflow-y: auto;
+        border: 1px solid rgba(45, 212, 191, .28);
+        border-radius: 22px;
+        background:
+            radial-gradient(circle at 100% 0, rgba(45, 212, 191, .12), transparent 34%),
+            linear-gradient(145deg, #0b1728, #07111f);
+        box-shadow: 0 28px 90px rgba(0, 0, 0, .55);
+    }
+
+    .simple-template-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(94, 234, 212, .14);
+    }
+
+    .simple-template-modal-title-row {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+    }
+
+    .simple-template-modal-mark,
+    .simple-template-modal-close {
+        display: grid;
+        place-items: center;
+        border-radius: 11px;
+    }
+
+    .simple-template-modal-mark {
+        flex: 0 0 40px;
+        width: 40px;
+        height: 40px;
+        color: #5eead4;
+        border: 1px solid rgba(45, 212, 191, .28);
+        background: rgba(13, 148, 136, .12);
+    }
+
+    .simple-template-modal-mark svg { width: 18px; height: 18px; }
+
+    .simple-template-modal-kicker {
+        display: block;
+        margin-bottom: 3px;
+        color: #5eead4;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .11em;
+        text-transform: uppercase;
+    }
+
+    .simple-template-modal-title {
+        margin: 0;
+        color: #f8fafc;
+        font-size: 15px;
+        font-weight: 900;
+        letter-spacing: .015em;
+        text-transform: uppercase;
+    }
+
+    .simple-template-modal-close {
+        flex: 0 0 36px;
+        width: 36px;
+        height: 36px;
+        color: #94a3b8;
+        border: 1px solid rgba(100, 116, 139, .24);
+        background: rgba(15, 23, 42, .60);
+    }
+
+    .simple-template-modal-close:hover { color: #fff; border-color: rgba(94, 234, 212, .40); }
+    .simple-template-modal-close svg { width: 16px; height: 16px; }
+
+    .simple-template-modal-body { padding: 20px; }
+
+    .simple-template-modal-intro {
+        margin: 0 0 17px;
+        color: #8290a5;
+        font-size: 10px;
+        font-weight: 650;
+        line-height: 1.55;
+    }
+
+    .simple-template-field + .simple-template-field { margin-top: 14px; }
+
+    .simple-template-field-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 7px;
+    }
+
+    .simple-template-field-label {
+        color: #dbeafe;
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: .07em;
+        text-transform: uppercase;
+    }
+
+    .simple-template-field-hint {
+        color: #526276;
+        font-size: 7px;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .simple-template-modal-input {
+        width: 100%;
+        min-height: 88px;
+        padding: 13px 14px;
+        resize: vertical;
+        border: 1px solid rgba(71, 85, 105, .65);
+        border-radius: 12px;
+        outline: none;
+        color: #d1fae5;
+        background: rgba(2, 6, 23, .80);
+        font-family: var(--font-mono);
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1.55;
+        text-transform: uppercase;
+        transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .simple-template-modal-input.is-example { color: #bfdbfe; }
+
+    .simple-template-modal-input[readonly] {
+        cursor: default;
+        border-color: rgba(96, 165, 250, .22);
+        color: #bfdbfe;
+        background:
+            linear-gradient(145deg, rgba(30, 64, 175, .09), rgba(2, 6, 23, .82));
+    }
+
+    .simple-template-modal-input:focus {
+        border-color: #2dd4bf;
+        box-shadow: 0 0 0 3px rgba(45, 212, 191, .10);
+    }
+
+    .simple-template-modal-error {
+        min-height: 16px;
+        margin-top: 8px;
+        color: #fda4af;
+        font-size: 8px;
+        font-weight: 800;
+    }
+
+    .simple-template-modal-footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 15px 20px 19px;
+        border-top: 1px solid rgba(94, 234, 212, .12);
+    }
+
+    .simple-template-modal-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 40px;
+        padding: 0 13px;
+        border: 1px solid rgba(100, 116, 139, .27);
+        border-radius: 10px;
+        color: #cbd5e1;
+        background: rgba(30, 41, 59, .60);
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: .055em;
+        text-transform: uppercase;
+    }
+
+    .simple-template-modal-action:hover { border-color: rgba(94, 234, 212, .42); color: #fff; }
+
+    .simple-template-modal-action.is-save {
+        margin-left: auto;
+        color: #fff;
+        border-color: rgba(45, 212, 191, .55);
+        background: linear-gradient(135deg, #0f766e, #059669);
+        box-shadow: 0 9px 24px rgba(5, 150, 105, .16);
+    }
+
+    .simple-template-modal-action svg { width: 13px; height: 13px; }
+
+    @media (max-width: 760px) {
+        #modal .simple-description-template {
+            grid-template-columns: 38px minmax(0, 1fr);
+        }
+
+        #modal .simple-template-icon { width: 38px; height: 38px; }
+
+        #modal .simple-template-actions {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+
+        #modal .simple-template-button { flex: 1; }
+        #modal .simple-template-status { grid-column: 1 / -1; }
+
+        .team-update-note {
+            grid-template-columns: 34px minmax(0, 1fr);
+        }
+
+        .team-update-icon { width: 34px; height: 34px; }
+
+        .team-update-read {
+            grid-column: 1 / -1;
+            width: 100%;
+        }
+    }
+
+    @media (max-width: 1180px) {
+        #listaItens.enterprise-view-list .manual2-card.enterprise-card:has(> .team-update-note) {
+            grid-template-columns: minmax(0, 1fr);
+            grid-template-areas:
+                "header"
+                "team-note"
+                "extras"
+                "descriptions"
+                "observation"
+                "actions";
+        }
+    }
+
+    @media (max-width: 520px) {
+        .team-message-heading,
+        .simple-template-modal-footer {
+            align-items: stretch;
+            flex-direction: column;
+        }
+
+        .team-message-badge { align-self: flex-start; }
+        .simple-template-modal-action,
+        .simple-template-modal-action.is-save { width: 100%; margin-left: 0; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .team-update-read,
+        #modal .simple-template-button,
+        .simple-template-modal-action { transition: none !important; }
+    }
+</style>
+
+<script id="simple-description-and-team-notes-v395-script">
+    (() => {
+        /* Substituído pelo construtor manual de ordem da versão 3.9.8. */
+        return;
+        const STORAGE_KEY = 'motormax.description-template.v2';
+        const LEGACY_STORAGE_KEY = 'motormax.description-template.v1';
+        const defaults = {
+            structure: 'NOME DA PEÇA + POSIÇÃO + TIPO / CARACTERÍSTICA + MEDIDAS + MARCA + CÓDIGO UNIVERSAL'
+        };
+
+        const icons = {
+            template: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h5M8 17h7"/></svg>',
+            edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+            use: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+            close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+            reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg>',
+            save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8"/></svg>'
+        };
+
+        const clean = (value, limit) => String(value || '').trim().slice(0, limit);
+
+        const loadModel = () => {
+            try {
+                const current = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
+                if (current && typeof current === 'object') {
+                    return {
+                        structure: clean(current.structure, 360) || defaults.structure
+                    };
+                }
+
+                const legacy = JSON.parse(window.localStorage.getItem(LEGACY_STORAGE_KEY) || 'null');
+                if (Array.isArray(legacy) && legacy.length) {
+                    const structure = legacy.map(part => clean(part?.label, 60)).filter(Boolean).join(' + ');
+                    return {
+                        structure: structure || defaults.structure
+                    };
+                }
+            } catch (error) {
+                /* Usa o padrão quando o armazenamento local não estiver disponível. */
+            }
+            return { ...defaults };
+        };
+
+        const saveModel = (model) => {
+            try {
+                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(model));
+            } catch (error) {
+                /* O editor continua válido durante a sessão. */
+            }
+        };
+
+        const setupTeamMessageCounter = () => {
+            const input = document.getElementById('cfg-mensagem-colega');
+            const counter = document.getElementById('cfg-mensagem-contador');
+            if (!input || !counter || input.dataset.counterReady === 'true') return;
+            input.dataset.counterReady = 'true';
+            const update = () => {
+                counter.textContent = input.value.length + '/280';
+            };
+            input.addEventListener('input', update);
+            update();
+        };
+
+        const init = () => {
+            setupTeamMessageCounter();
+            if (window.__simpleDescriptionTemplateReady) return true;
+
+            const descriptionBlock = document.querySelector('#modal .pro-description-block');
+            const descriptionsContainer = document.getElementById('container-descricoes');
+            if (!descriptionBlock || !descriptionsContainer || typeof window.adicionarCampoDescricao !== 'function') {
+                return false;
+            }
+
+            window.__simpleDescriptionTemplateReady = true;
+            let model = loadModel();
+            let lastFocused = null;
+            let statusTimer = null;
+
+            const card = document.createElement('section');
+            card.className = 'simple-description-template';
+            card.setAttribute('aria-label', 'Modelo de descrição');
+            card.innerHTML =
+                '<span class="simple-template-icon">' + icons.template + '</span>' +
+                '<div class="simple-template-copy">' +
+                    '<div class="simple-template-heading">' +
+                        '<span class="simple-template-kicker">Modelo inteligente</span>' +
+                        '<span class="simple-template-custom-badge" data-simple-custom>Lendo cadastro</span>' +
+                    '</div>' +
+                    '<strong class="simple-template-structure" data-simple-structure></strong>' +
+                    '<span class="simple-template-example" data-simple-example></span>' +
+                '</div>' +
+                '<div class="simple-template-actions">' +
+                    '<button type="button" class="simple-template-button" data-simple-use>' + icons.use + '<span>Usar modelo</span></button>' +
+                    '<button type="button" class="simple-template-button is-edit" data-simple-edit>' + icons.edit + '<span>Editar</span></button>' +
+                '</div>' +
+                '<div class="simple-template-status" data-simple-status role="status" aria-live="polite"></div>';
+
+            descriptionBlock.insertBefore(card, descriptionsContainer);
+
+            const overlay = document.createElement('div');
+            overlay.id = 'modal-modelo-descricao';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'simple-template-modal-title');
+            overlay.innerHTML =
+                '<div class="simple-template-modal-shell">' +
+                    '<div class="simple-template-modal-header">' +
+                        '<div class="simple-template-modal-title-row">' +
+                            '<span class="simple-template-modal-mark">' + icons.edit + '</span>' +
+                            '<div><span class="simple-template-modal-kicker">Configuração simples</span><h3 id="simple-template-modal-title" class="simple-template-modal-title">Editar modelo de descrição</h3></div>' +
+                        '</div>' +
+                        '<button type="button" class="simple-template-modal-close" data-simple-close aria-label="Fechar editor">' + icons.close + '</button>' +
+                    '</div>' +
+                    '<div class="simple-template-modal-body">' +
+                        '<p class="simple-template-modal-intro">Edite somente a estrutura de reserva. O exemplo abaixo é puxado automaticamente da descrição e dos campos do cadastro que está aberto.</p>' +
+                        '<div class="simple-template-field">' +
+                            '<div class="simple-template-field-head"><label for="simple-template-structure-input" class="simple-template-field-label">Estrutura do modelo</label><span class="simple-template-field-hint">O que deve ser preenchido</span></div>' +
+                            '<textarea id="simple-template-structure-input" class="simple-template-modal-input" maxlength="360" rows="3"></textarea>' +
+                        '</div>' +
+                        '<div class="simple-template-field">' +
+                            '<div class="simple-template-field-head"><label for="simple-template-example-input" class="simple-template-field-label">Exemplo automático deste cadastro</label><span class="simple-template-field-hint">Somente leitura</span></div>' +
+                            '<textarea id="simple-template-example-input" class="simple-template-modal-input is-example" maxlength="360" rows="3" readonly aria-readonly="true"></textarea>' +
+                        '</div>' +
+                        '<div class="simple-template-modal-error" data-simple-error role="alert"></div>' +
+                    '</div>' +
+                    '<div class="simple-template-modal-footer">' +
+                        '<button type="button" class="simple-template-modal-action" data-simple-reset>' + icons.reset + '<span>Restaurar padrão</span></button>' +
+                        '<button type="button" class="simple-template-modal-action" data-simple-close><span>Cancelar</span></button>' +
+                        '<button type="button" class="simple-template-modal-action is-save" data-simple-save>' + icons.save + '<span>Salvar modelo</span></button>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(overlay);
+
+            const structureText = card.querySelector('[data-simple-structure]');
+            const exampleText = card.querySelector('[data-simple-example]');
+            const customBadge = card.querySelector('[data-simple-custom]');
+            const status = card.querySelector('[data-simple-status]');
+            const structureInput = overlay.querySelector('#simple-template-structure-input');
+            const exampleInput = overlay.querySelector('#simple-template-example-input');
+            const error = overlay.querySelector('[data-simple-error]');
+            const useButtonLabel = card.querySelector('[data-simple-use] span');
+            let refreshFrame = 0;
+
+            const normalize = (value = '') => String(value)
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLocaleUpperCase('pt-BR');
+
+            const findValueIndex = (description, values) => {
+                const normalizedDescription = normalize(description);
+                let best = -1;
+                values.filter(Boolean).forEach(value => {
+                    const normalizedValue = normalize(value).trim();
+                    if (normalizedValue.length < 2) return;
+                    const index = normalizedDescription.indexOf(normalizedValue);
+                    if (index >= 0 && (best < 0 || index < best)) best = index;
+                });
+                return best;
+            };
+
+            const findTokenIndex = (description, value) => {
+                const normalizedDescription = normalize(description);
+                const tokens = normalize(value)
+                    .split(/[^A-Z0-9]+/)
+                    .filter(token => token.length >= 3 && !['PARA', 'COM', 'SEM'].includes(token));
+                let best = -1;
+                tokens.forEach(token => {
+                    const index = normalizedDescription.indexOf(token);
+                    if (index >= 0 && (best < 0 || index < best)) best = index;
+                });
+                return best;
+            };
+
+            const findPatternIndex = (description, pattern) => {
+                const match = normalize(description).match(pattern);
+                return match && typeof match.index === 'number' ? match.index : -1;
+            };
+
+            const getFieldValue = (id) => clean(document.getElementById(id)?.value, 120);
+
+            const getIntelligence = () => {
+                const currentDescription = Array.from(descriptionsContainer.querySelectorAll('.input-desc-item'))
+                    .map(field => clean(field.value, 360))
+                    .find(Boolean) || '';
+
+                const piece = getFieldValue('form-veiculo');
+                const application = getFieldValue('form-aplicacao');
+                const brand = getFieldValue('form-marca');
+                const codes = [
+                    getFieldValue('form-cod-generico'),
+                    getFieldValue('form-cod-original'),
+                    getFieldValue('form-cod-barras')
+                ].filter(Boolean);
+
+                const generatedSegments = [piece, application, brand, codes[0]]
+                    .filter((value, index, values) => value && values.findIndex(other => normalize(other) === normalize(value)) === index);
+                const generatedExample = generatedSegments.join(' + ');
+                const detected = [];
+                const addDetection = (label, index) => {
+                    if (index < 0 || detected.some(item => item.label === label)) return;
+                    detected.push({ label, index });
+                };
+
+                if (currentDescription) {
+                    const exactPieceIndex = findValueIndex(currentDescription, [piece]);
+                    const pieceIndex = exactPieceIndex >= 0 ? exactPieceIndex : findTokenIndex(currentDescription, piece);
+                    addDetection('NOME DA PEÇA', pieceIndex);
+                    addDetection('POSIÇÃO', findPatternIndex(currentDescription, /\b(DIANT(EIRO|EIRA)?|TRAS(EIRO|EIRA)?|ESQ(UERDO|UERDA)?|DIR(EITO|EITA)?|SUPERIOR|INFERIOR|INTERNO|EXTERNO)\b/));
+                    addDetection('TIPO / CARACTERÍSTICA', findPatternIndex(currentDescription, /\b(VENT(ILADO|ILADA)?|SOLID(O|A)|RANHURAD(O|A)|PERFURAD(O|A)|COM ABS|SEM ABS|ACO|FERRO|ALUMINIO|BORRACHA|PLASTICO|CERAMICA)\b/));
+                    addDetection('MEDIDAS', findPatternIndex(currentDescription, /\b\d+(?:[.,]\d+)?\s*[X×]\s*\d+(?:[.,]\d+)?(?:\s*[X×]\s*\d+(?:[.,]\d+)?)?(?:\s*(MM|CM|POL))?\b/));
+                    addDetection('APLICAÇÃO', findValueIndex(currentDescription, [application]));
+                    addDetection('MARCA', findValueIndex(currentDescription, [brand]));
+                    addDetection('CÓDIGO UNIVERSAL', findValueIndex(currentDescription, codes));
+                }
+
+                detected.sort((a, b) => a.index - b.index);
+                const detectedOrder = detected.map(item => item.label);
+                const activeStructure = detectedOrder.length >= 2
+                    ? detectedOrder.join(' + ')
+                    : model.structure;
+
+                if (currentDescription) {
+                    return {
+                        source: 'card',
+                        example: currentDescription,
+                        structure: activeStructure,
+                        detectedOrder
+                    };
+                }
+
+                if (generatedSegments.length >= 2) {
+                    return {
+                        source: 'fields',
+                        example: generatedExample,
+                        structure: model.structure,
+                        detectedOrder: []
+                    };
+                }
+
+                return {
+                    source: 'empty',
+                    example: '',
+                    structure: model.structure,
+                    detectedOrder: []
+                };
+            };
+
+            const refreshIntelligence = () => {
+                const analysis = getIntelligence();
+                const custom = model.structure !== defaults.structure;
+
+                if (analysis.source === 'card') {
+                    structureText.textContent = analysis.detectedOrder.length >= 2
+                        ? 'Ordem detectada: ' + analysis.structure.replace(/ \+ /g, ' → ')
+                        : 'Descrição atual reconhecida automaticamente';
+                    exampleText.textContent = 'Deste card: ' + analysis.example;
+                    customBadge.textContent = 'Lido do card';
+                    useButtonLabel.textContent = analysis.detectedOrder.length >= 2 ? 'Usar ordem' : 'Usar modelo';
+                } else if (analysis.source === 'fields') {
+                    structureText.textContent = model.structure;
+                    exampleText.textContent = 'Prévia automática: ' + analysis.example;
+                    customBadge.textContent = 'Montado pelos campos';
+                    useButtonLabel.textContent = 'Usar preenchimento';
+                } else {
+                    structureText.textContent = model.structure;
+                    exampleText.textContent = 'Preencha a descrição e o exemplo deste cadastro aparecerá aqui.';
+                    customBadge.textContent = custom ? 'Modelo personalizado' : 'Aguardando descrição';
+                    useButtonLabel.textContent = 'Usar modelo';
+                }
+
+                customBadge.classList.add('is-visible');
+                if (overlay.classList.contains('is-open')) {
+                    exampleInput.value = analysis.example || 'AINDA NÃO HÁ UMA DESCRIÇÃO PREENCHIDA NESTE CADASTRO.';
+                }
+                return analysis;
+            };
+
+            const scheduleRefresh = () => {
+                if (refreshFrame) return;
+                refreshFrame = window.requestAnimationFrame(() => {
+                    refreshFrame = 0;
+                    refreshIntelligence();
+                });
+            };
+
+            const showStatus = (message) => {
+                status.textContent = message;
+                window.clearTimeout(statusTimer);
+                statusTimer = window.setTimeout(() => {
+                    status.textContent = '';
+                }, 3000);
+            };
+
+            const openEditor = (trigger) => {
+                lastFocused = trigger || document.activeElement;
+                structureInput.value = model.structure;
+                const analysis = refreshIntelligence();
+                exampleInput.value = analysis.example || 'AINDA NÃO HÁ UMA DESCRIÇÃO PREENCHIDA NESTE CADASTRO.';
+                error.textContent = '';
+                overlay.classList.add('is-open');
+                window.setTimeout(() => {
+                    structureInput.focus({ preventScroll: true });
+                    structureInput.select();
+                }, 40);
+            };
+
+            const closeEditor = () => {
+                overlay.classList.remove('is-open');
+                if (lastFocused && typeof lastFocused.focus === 'function') {
+                    lastFocused.focus({ preventScroll: true });
+                }
+            };
+
+            const commitEditor = () => {
+                const structure = clean(structureInput.value, 360);
+                if (!structure) {
+                    error.textContent = 'Digite pelo menos uma informação na estrutura do modelo.';
+                    structureInput.focus();
+                    return;
+                }
+                model = { structure };
+                saveModel(model);
+                refreshIntelligence();
+                closeEditor();
+                showStatus('Modelo atualizado.');
+            };
+
+            const useModel = () => {
+                const analysis = getIntelligence();
+                const valueToInsert = analysis.source === 'fields'
+                    ? analysis.example
+                    : analysis.structure;
+                const emptyField = Array.from(descriptionsContainer.querySelectorAll('.input-desc-item'))
+                    .find(field => !field.value.trim());
+                if (emptyField) {
+                    emptyField.value = valueToInsert;
+                    emptyField.dispatchEvent(new Event('input', { bubbles: true }));
+                    emptyField.focus();
+                    emptyField.setSelectionRange(emptyField.value.length, emptyField.value.length);
+                    emptyField.closest('.pro-description-item')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    window.adicionarCampoDescricao(valueToInsert);
+                }
+                showStatus(analysis.source === 'fields'
+                    ? 'Descrição montada automaticamente com os campos preenchidos.'
+                    : analysis.source === 'card' && analysis.detectedOrder.length >= 2
+                        ? 'Ordem reconhecida e inserida em uma nova descrição.'
+                        : 'Modelo inserido. Agora substitua pelos dados da peça.');
+            };
+
+            card.querySelector('[data-simple-use]').addEventListener('click', useModel);
+            card.querySelector('[data-simple-edit]').addEventListener('click', event => openEditor(event.currentTarget));
+            overlay.querySelectorAll('[data-simple-close]').forEach(button => button.addEventListener('click', closeEditor));
+            overlay.querySelector('[data-simple-save]').addEventListener('click', commitEditor);
+            overlay.querySelector('[data-simple-reset]').addEventListener('click', () => {
+                structureInput.value = defaults.structure;
+                const analysis = getIntelligence();
+                exampleInput.value = analysis.example || 'AINDA NÃO HÁ UMA DESCRIÇÃO PREENCHIDA NESTE CADASTRO.';
+                error.textContent = '';
+                structureInput.focus();
+            });
+
+            document.getElementById('modal').addEventListener('input', scheduleRefresh);
+            document.getElementById('modal').addEventListener('change', scheduleRefresh);
+            const descriptionsObserver = new MutationObserver(scheduleRefresh);
+            descriptionsObserver.observe(descriptionsContainer, { childList: true, subtree: true });
+
+            overlay.addEventListener('mousedown', event => {
+                if (event.target === overlay) closeEditor();
+            });
+
+            document.addEventListener('keydown', event => {
+                if (!overlay.classList.contains('is-open')) return;
+
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    closeEditor();
+                    return;
+                }
+
+                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    commitEditor();
+                    return;
+                }
+
+                if (event.key === 'Tab') {
+                    const focusable = Array.from(overlay.querySelectorAll('button:not([disabled]), textarea:not([disabled])'));
+                    if (!focusable.length) return;
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                }
+            }, true);
+
+            refreshIntelligence();
+            window.editarModeloDescricao = () => openEditor(card.querySelector('[data-simple-edit]'));
+            return true;
+        };
+
+        if (!init()) {
+            const retry = window.setInterval(() => {
+                setupTeamMessageCounter();
+                if (init()) window.clearInterval(retry);
+            }, 80);
+            window.setTimeout(() => window.clearInterval(retry), 6500);
+        }
+    })();
+</script>
+
+<!-- =====================================================================
+     JANELA DE CADASTRO REFINADA — v3.9.7
+     Mais área útil, navegação fixa e salvamento discreto na etapa final.
+====================================================================== -->
+<style id="professional-modal-navigation-v397">
+    #modal .pro-modal-shell {
+        width: min(1160px, 100%) !important;
+        max-width: 1160px !important;
+        height: min(95vh, 960px) !important;
+        max-height: 95vh !important;
+        border-radius: 24px !important;
+    }
+
+    #modal .pro-modal-header {
+        min-height: 68px;
+        padding: 13px 20px 12px !important;
+        gap: 14px;
+        background:
+            linear-gradient(180deg, rgba(5, 13, 27, .96), rgba(6, 14, 28, .88));
+    }
+
+    #modal .pro-title-area { gap: 11px; }
+
+    #modal .pro-title-mark {
+        width: 38px;
+        height: 38px;
+        flex-basis: 38px;
+        border-radius: 11px;
+    }
+
+    #modal #modalTitle {
+        font-size: 1rem !important;
+        letter-spacing: -.015em;
+    }
+
+    #modal .pro-modal-subtitle {
+        margin-top: 3px;
+        font-size: .59rem;
+    }
+
+    #modal .pro-header-btn,
+    #modal .pro-close-btn {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
+
+    #modal .pro-modal-body {
+        padding: 0 20px 18px !important;
+        scroll-padding-top: 92px;
+    }
+
+    #modal .pro-modal-body::-webkit-scrollbar { width: 7px; }
+
+    /* As etapas permanecem acessíveis durante toda a rolagem. */
+    #modal .pro-form-tabs {
+        position: sticky;
+        top: 0;
+        z-index: 35;
+        width: auto;
+        max-width: none;
+        margin: 0 -20px 14px !important;
+        padding: 10px 20px !important;
+        gap: 8px;
+        border: 0;
+        border-bottom: 1px solid rgba(96, 165, 250, .18);
+        border-radius: 0;
+        background:
+            linear-gradient(180deg, rgba(9, 20, 38, .99), rgba(8, 18, 35, .96));
+        box-shadow: 0 10px 28px rgba(0, 0, 0, .16);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        transition: box-shadow .2s ease, border-color .2s ease;
+    }
+
+    #modal .pro-form-tabs.has-scroll-shadow {
+        border-bottom-color: rgba(96, 165, 250, .32);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, .32), 0 1px 0 rgba(96, 165, 250, .08);
+    }
+
+    #modal .pro-form-tab {
+        min-height: 58px;
+        grid-template-columns: 32px minmax(0, 1fr);
+        gap: 8px;
+        padding: 8px 10px;
+        border-radius: 11px;
+    }
+
+    #modal .pro-form-tab.is-active {
+        transform: none;
+        box-shadow: 0 7px 20px rgba(var(--tab-rgb), .12), inset 0 0 0 1px rgba(var(--tab-rgb), .08);
+    }
+
+    #modal .pro-form-tab-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 9px;
+    }
+
+    #modal .pro-form-tab-icon svg { width: 17px; height: 17px; }
+    #modal .pro-form-tab-step { margin-bottom: 3px; font-size: 7px; }
+    #modal .pro-form-tab-title { font-size: 9px; }
+    #modal .pro-form-tab-status { margin-top: -1px; font-size: 7px; }
+
+    #modal .pro-form-layout.pro-tabbed-form {
+        max-width: 1040px;
+        padding: 14px;
+        border-radius: 17px;
+        box-shadow: 0 16px 38px rgba(0, 0, 0, .18);
+    }
+
+    #modal .pro-tab-stage-header {
+        grid-template-columns: 43px minmax(0, 1fr) auto;
+        gap: 11px;
+        margin-bottom: 12px;
+        padding: 3px 3px 12px;
+    }
+
+    #modal .pro-tab-stage-icon {
+        width: 43px;
+        height: 43px;
+        border-radius: 12px;
+        box-shadow: 0 7px 18px rgba(var(--stage-rgb), .08);
+    }
+
+    #modal .pro-tab-stage-icon svg { width: 18px; height: 18px; }
+    #modal .pro-tab-stage-kicker { margin-bottom: 2px; font-size: 8px; }
+    #modal .pro-tab-stage-title { font-size: clamp(14px, 1.7vw, 18px); }
+    #modal .pro-tab-stage-helper { margin-top: 4px; font-size: 9px; }
+
+    #modal .pro-tab-stage-status {
+        min-height: 26px;
+        padding: 0 9px;
+        font-size: 7px;
+    }
+
+    #modal .pro-tabbed-form .pro-piece-block,
+    #modal .pro-tabbed-form .pro-description-block,
+    #modal .pro-tabbed-form .pro-observation-block,
+    #modal .pro-tabbed-form .pro-meta-panel {
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    #modal .pro-tabbed-form .pro-piece-block {
+        min-height: 170px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    #modal .pro-tabbed-form .pro-piece-block input {
+        min-height: 54px;
+        font-size: 15px;
+    }
+
+    #modal .pro-section-title-row { margin-bottom: 10px; }
+
+    #modal .pro-tab-navigation {
+        margin-top: 13px;
+        padding: 12px 2px 1px;
+    }
+
+    #modal .pro-tab-nav-btn {
+        min-height: 40px;
+        padding: 0 14px;
+        border-radius: 10px;
+    }
+
+    #modal .pro-tab-nav-btn.is-next {
+        min-width: 170px;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, .14);
+    }
+
+    /* O rodapé grande deixa de acompanhar todas as etapas. */
+    #modal .pro-modal-footer {
+        display: none !important;
+    }
+
+    #modal[data-active-form-tab="codes"] .pro-modal-footer {
+        display: flex !important;
+        min-height: 64px;
+        padding: 9px 20px 11px !important;
+        gap: 14px !important;
+        border-top-color: rgba(139, 92, 246, .26);
+        background:
+            radial-gradient(circle at 100% 0, rgba(139, 92, 246, .10), transparent 36%),
+            rgba(5, 12, 25, .94);
+        animation: proCompactFooterIn .22s ease both;
+    }
+
+    @keyframes proCompactFooterIn {
+        from { opacity: 0; transform: translateY(8px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    #modal .pro-footer-title {
+        color: #ddd6fe;
+        font-size: .58rem;
+    }
+
+    #modal .pro-footer-helper {
+        max-width: 430px;
+        margin-top: 2px;
+        color: #718096;
+        font-size: .52rem;
+    }
+
+    #modal .pro-footer-helper::after { content: none !important; }
+
+    #modal .pro-footer-actions {
+        width: auto;
+        min-width: 0;
+        gap: 8px;
+    }
+
+    #modal .pro-footer-actions > button {
+        min-height: 42px;
+        flex: 0 0 auto !important;
+        padding: 0 14px !important;
+        border-radius: 11px !important;
+        font-size: .68rem !important;
+    }
+
+    #modal .pro-save-btn {
+        min-width: 190px;
+        box-shadow: 0 10px 24px -18px rgba(99, 102, 241, .95);
+    }
+
+    #modal .pro-cancel-btn { min-width: 92px; }
+
+    #modal .pro-shortcut-badge {
+        padding: 2px 5px;
+        font-size: .42rem;
+    }
+
+    #modal .pro-tab-finish-note {
+        color: #c4b5fd;
+        font-size: 8px;
+    }
+
+    #modal .pro-tab-finish-dot {
+        background: #a78bfa;
+        box-shadow: 0 0 0 4px rgba(167, 139, 250, .10), 0 0 14px rgba(167, 139, 250, .58);
+    }
+
+    @media (max-width: 900px) {
+        #modal .pro-modal-shell {
+            height: 96vh !important;
+            max-height: 96vh !important;
+        }
+
+        #modal .pro-modal-body { padding: 0 15px 15px !important; }
+
+        #modal .pro-form-tabs {
+            margin-right: -15px !important;
+            margin-left: -15px !important;
+            padding-right: 15px !important;
+            padding-left: 15px !important;
+        }
+
+        #modal .pro-modal-footer .pro-footer-copy { display: none; }
+        #modal .pro-footer-actions { width: 100%; }
+        #modal .pro-save-btn { flex: 1 1 auto !important; min-width: 0; }
+    }
+
+    @media (max-width: 640px) {
+        #modal .pro-modal-header {
+            min-height: 58px;
+            padding: 10px 12px !important;
+        }
+
+        #modal .pro-title-mark {
+            width: 34px;
+            height: 34px;
+            flex-basis: 34px;
+        }
+
+        #modal .pro-close-btn { width: 34px; height: 34px; }
+        #modal .pro-modal-body { padding: 0 11px 12px !important; }
+
+        #modal .pro-form-tabs {
+            display: flex;
+            grid-template-columns: none;
+            gap: 7px;
+            margin-right: -11px !important;
+            margin-left: -11px !important;
+            padding: 8px 11px !important;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scroll-snap-type: x proximity;
+            scrollbar-width: none;
+        }
+
+        #modal .pro-form-tabs::-webkit-scrollbar { display: none; }
+
+        #modal .pro-form-tab {
+            flex: 0 0 142px;
+            min-height: 52px;
+            scroll-snap-align: center;
+        }
+
+        #modal .pro-form-layout.pro-tabbed-form {
+            padding: 10px;
+            border-radius: 14px;
+        }
+
+        #modal .pro-tab-stage-header {
+            grid-template-columns: 38px minmax(0, 1fr);
+            gap: 9px;
+        }
+
+        #modal .pro-tab-stage-icon {
+            width: 38px;
+            height: 38px;
+        }
+
+        #modal .pro-tab-stage-status {
+            grid-column: 1 / -1;
+            justify-self: start;
+        }
+
+        #modal .pro-tabbed-form .pro-piece-block,
+        #modal .pro-tabbed-form .pro-description-block,
+        #modal .pro-tabbed-form .pro-observation-block,
+        #modal .pro-tabbed-form .pro-meta-panel {
+            padding: 12px;
+        }
+
+        #modal .pro-tab-navigation {
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        #modal .pro-tab-nav-btn {
+            min-width: 0;
+            padding: 0 10px;
+            flex: 1 1 50%;
+        }
+
+        #modal .pro-tab-nav-btn.is-next { min-width: 0; }
+        #modal .pro-tab-finish-note { width: auto; font-size: 7px; }
+
+        #modal[data-active-form-tab="codes"] .pro-modal-footer {
+            min-height: 58px;
+            padding: 8px 11px 9px !important;
+        }
+
+        #modal .pro-footer-actions > button { min-height: 40px; }
+        #modal .pro-cancel-btn { min-width: 78px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        #modal[data-active-form-tab="codes"] .pro-modal-footer { animation: none !important; }
+    }
+</style>
+
+<script id="professional-modal-navigation-v397-script">
+    (() => {
+        const init = () => {
+            if (window.__professionalModalNavigation397Ready) return true;
+
+            const modal = document.getElementById('modal');
+            const body = modal?.querySelector('.pro-modal-body');
+            const tabs = modal?.querySelector('.pro-form-tabs');
+            const footer = modal?.querySelector('.pro-modal-footer');
+            const saveButton = modal?.querySelector('.pro-save-btn');
+            const subtitle = modal?.querySelector('.pro-modal-subtitle');
+            if (!modal || !body || !tabs || !footer || !saveButton) return false;
+
+            window.__professionalModalNavigation397Ready = true;
+
+            if (subtitle) {
+                subtitle.textContent = 'Preencha por etapas. A opção de salvar aparece somente na etapa final.';
+            }
+
+            const footerTitle = footer.querySelector('.pro-footer-title');
+            const footerHelper = footer.querySelector('.pro-footer-helper');
+            const saveLabel = saveButton.querySelector('span:not(.pro-shortcut-badge)');
+            if (footerTitle) footerTitle.textContent = 'Última etapa';
+            if (footerHelper) footerHelper.textContent = 'Revise os códigos e avance para configurar o card e o recado da equipe.';
+            if (saveLabel) saveLabel.textContent = 'Revisar e salvar';
+
+            const syncNavigation = () => {
+                const finalStage = modal.dataset.activeFormTab === 'codes';
+                footer.setAttribute('aria-hidden', finalStage ? 'false' : 'true');
+
+                if (window.matchMedia('(max-width: 640px)').matches) {
+                    const activeTab = tabs.querySelector('.pro-form-tab.is-active');
+                    activeTab?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            };
+
+            body.addEventListener('scroll', () => {
+                tabs.classList.toggle('has-scroll-shadow', body.scrollTop > 6);
+            }, { passive: true });
+
+            document.addEventListener('keydown', event => {
+                const modalOpen = modal.style.display === 'flex';
+                const saveShortcut = (event.ctrlKey || event.metaKey) && event.key === 'Enter';
+                if (!modalOpen || !saveShortcut || modal.dataset.activeFormTab === 'codes') return;
+
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                if (typeof window.abrirEtapaCadastro === 'function') {
+                    window.abrirEtapaCadastro('codes');
+                }
+            }, true);
+
+            const observer = new MutationObserver(syncNavigation);
+            observer.observe(modal, { attributes: true, attributeFilter: ['data-active-form-tab'] });
+            window.addEventListener('resize', syncNavigation, { passive: true });
+            syncNavigation();
+            return true;
+        };
+
+        if (!init()) {
+            const retry = window.setInterval(() => {
+                if (init()) window.clearInterval(retry);
+            }, 80);
+            window.setTimeout(() => window.clearInterval(retry), 6500);
+        }
+    })();
+</script>
+
+<!-- =====================================================================
+     CONSTRUTOR MANUAL DA ORDEM DA DESCRIÇÃO — v3.9.8
+     Uma informação por vez, sem exemplos automáticos.
+====================================================================== -->
+<style id="manual-description-order-v398">
+    #modal .manual-order-card {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        gap: 13px;
+        align-items: center;
+        margin: 0 0 14px;
+        padding: 14px;
+        border: 1px solid rgba(45, 212, 191, 0.25);
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(6, 78, 59, 0.20), rgba(15, 23, 42, 0.86));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.025);
+    }
+
+    #modal .manual-order-icon {
+        width: 42px;
+        height: 42px;
+        display: grid;
+        place-items: center;
+        align-self: start;
+        color: #5eead4;
+        border: 1px solid rgba(45, 212, 191, 0.28);
+        border-radius: 12px;
+        background: rgba(13, 148, 136, 0.13);
+    }
+
+    #modal .manual-order-icon svg,
+    #modal .manual-order-btn svg,
+    #modal-order-description svg { width: 17px; height: 17px; flex: 0 0 auto; }
+
+    #modal .manual-order-copy { min-width: 0; }
+
+    #modal .manual-order-heading {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    #modal .manual-order-kicker {
+        display: block;
+        color: #5eead4;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+    }
+
+    #modal .manual-order-title {
+        color: #f8fafc;
+        font-size: 11px;
+        font-weight: 900;
+        letter-spacing: 0.02em;
+    }
+
+    #modal .manual-order-sequence {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 6px;
+        min-height: 30px;
+    }
+
+    #modal .manual-order-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        max-width: 100%;
+        padding: 6px 9px;
+        overflow: hidden;
+        color: #e2e8f0;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 8px;
+        background: rgba(2, 6, 23, 0.5);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 9px;
+        font-weight: 700;
+        line-height: 1.2;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #modal .manual-order-plus {
+        color: #2dd4bf;
+        font: 900 14px/1 'Inter', sans-serif;
+    }
+
+    #modal .manual-order-add-next {
+        width: 30px;
+        height: 30px;
+        display: inline-grid;
+        place-items: center;
+        padding: 0;
+        color: #5eead4;
+        border: 1px dashed rgba(45, 212, 191, 0.55);
+        border-radius: 9px;
+        background: rgba(13, 148, 136, 0.09);
+        font-size: 18px;
+        font-weight: 800;
+        line-height: 1;
+        cursor: pointer;
+        transition: 160ms ease;
+    }
+
+    #modal .manual-order-add-next:hover,
+    #modal .manual-order-add-next:focus-visible {
+        color: #ecfeff;
+        border-color: #5eead4;
+        background: rgba(13, 148, 136, 0.22);
+        outline: none;
+        transform: translateY(-1px);
+    }
+
+    #modal .manual-order-actions {
+        display: flex;
+        align-items: stretch;
+        gap: 7px;
+    }
+
+    #modal .manual-order-btn {
+        min-height: 36px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        padding: 0 11px;
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.18);
+        border-radius: 9px;
+        background: rgba(30, 41, 59, 0.76);
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        cursor: pointer;
+        transition: 160ms ease;
+    }
+
+    #modal .manual-order-btn.is-primary {
+        color: #ccfbf1;
+        border-color: rgba(45, 212, 191, 0.34);
+        background: rgba(13, 148, 136, 0.17);
+    }
+
+    #modal .manual-order-btn:hover,
+    #modal .manual-order-btn:focus-visible {
+        color: #fff;
+        border-color: rgba(94, 234, 212, 0.65);
+        outline: none;
+        transform: translateY(-1px);
+    }
+
+    #modal .manual-order-status {
+        grid-column: 2 / -1;
+        min-height: 0;
+        color: #5eead4;
+        font-size: 8px;
+        font-weight: 800;
+    }
+
+    #modal .manual-order-status:not(:empty) { margin-top: -4px; }
+
+    #modal-order-description {
+        position: fixed;
+        inset: 0;
+        z-index: 4400;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 18px;
+        background: rgba(2, 6, 23, 0.90);
+        backdrop-filter: blur(12px);
+    }
+
+    #modal-order-description.is-open { display: flex; }
+
+    #modal-order-description .order-editor-shell {
+        width: min(650px, 100%);
+        max-height: min(760px, calc(100vh - 36px));
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid rgba(45, 212, 191, 0.27);
+        border-radius: 22px;
+        background: #0b1220;
+        box-shadow: 0 30px 90px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    #modal-order-description .order-editor-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 18px 20px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+        background: linear-gradient(135deg, rgba(13,148,136,0.14), rgba(15,23,42,0.76));
+    }
+
+    #modal-order-description .order-editor-title-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 0;
+    }
+
+    #modal-order-description .order-editor-mark {
+        width: 40px;
+        height: 40px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        color: #5eead4;
+        border: 1px solid rgba(45, 212, 191, 0.28);
+        border-radius: 12px;
+        background: rgba(13, 148, 136, 0.14);
+    }
+
+    #modal-order-description .order-editor-kicker {
+        display: block;
+        margin-bottom: 3px;
+        color: #5eead4;
+        font-size: 8px;
+        font-weight: 900;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+    }
+
+    #modal-order-description .order-editor-title {
+        margin: 0;
+        color: #f8fafc;
+        font-size: 17px;
+        font-weight: 900;
+        line-height: 1.2;
+    }
+
+    #modal-order-description .order-editor-close {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        color: #94a3b8;
+        border: 1px solid rgba(148, 163, 184, 0.12);
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.72);
+        cursor: pointer;
+    }
+
+    #modal-order-description .order-editor-close:hover,
+    #modal-order-description .order-editor-close:focus-visible {
+        color: #fff;
+        border-color: rgba(248,250,252,0.25);
+        outline: none;
+    }
+
+    #modal-order-description .order-editor-body {
+        min-height: 0;
+        overflow-y: auto;
+        padding: 20px;
+    }
+
+    #modal-order-description .order-editor-intro {
+        margin: 0 0 16px;
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 650;
+        line-height: 1.55;
+    }
+
+    #modal-order-description .order-editor-list {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #modal-order-description .order-editor-row {
+        display: grid;
+        grid-template-columns: 32px minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: center;
+        padding: 9px;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 12px;
+        background: rgba(15, 23, 42, 0.72);
+    }
+
+    #modal-order-description .order-editor-number {
+        width: 30px;
+        height: 30px;
+        display: grid;
+        place-items: center;
+        color: #5eead4;
+        border-radius: 9px;
+        background: rgba(13, 148, 136, 0.13);
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 10px;
+        font-weight: 800;
+    }
+
+    #modal-order-description .order-editor-input {
+        width: 100%;
+        min-width: 0;
+        height: 40px;
+        padding: 0 11px;
+        color: #f8fafc;
+        border: 1px solid rgba(100, 116, 139, 0.36);
+        border-radius: 9px;
+        outline: none;
+        background: #020617;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    #modal-order-description .order-editor-input:focus {
+        border-color: #2dd4bf;
+        box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.10);
+    }
+
+    #modal-order-description .order-editor-input::placeholder { color: #475569; }
+
+    #modal-order-description .order-editor-row-actions {
+        display: flex;
+        gap: 5px;
+    }
+
+    #modal-order-description .order-editor-icon-btn {
+        width: 32px;
+        height: 32px;
+        display: grid;
+        place-items: center;
+        padding: 0;
+        color: #94a3b8;
+        border: 1px solid rgba(148, 163, 184, 0.14);
+        border-radius: 8px;
+        background: rgba(30, 41, 59, 0.78);
+        cursor: pointer;
+    }
+
+    #modal-order-description .order-editor-icon-btn:hover:not(:disabled),
+    #modal-order-description .order-editor-icon-btn:focus-visible:not(:disabled) {
+        color: #fff;
+        border-color: rgba(94, 234, 212, 0.48);
+        outline: none;
+    }
+
+    #modal-order-description .order-editor-icon-btn.is-delete:hover,
+    #modal-order-description .order-editor-icon-btn.is-delete:focus-visible {
+        color: #fda4af;
+        border-color: rgba(251, 113, 133, 0.42);
+    }
+
+    #modal-order-description .order-editor-icon-btn:disabled {
+        opacity: 0.28;
+        cursor: not-allowed;
+    }
+
+    #modal-order-description .order-editor-separator {
+        height: 25px;
+        display: grid;
+        place-items: center;
+        color: #2dd4bf;
+        font-size: 17px;
+        font-weight: 900;
+    }
+
+    #modal-order-description .order-editor-add {
+        width: 100%;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-top: 12px;
+        color: #99f6e4;
+        border: 1px dashed rgba(45, 212, 191, 0.48);
+        border-radius: 11px;
+        background: rgba(13, 148, 136, 0.09);
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+
+    #modal-order-description .order-editor-add:hover,
+    #modal-order-description .order-editor-add:focus-visible {
+        color: #fff;
+        border-color: #5eead4;
+        background: rgba(13, 148, 136, 0.18);
+        outline: none;
+    }
+
+    #modal-order-description .order-editor-limit {
+        display: block;
+        margin-top: 9px;
+        color: #64748b;
+        font-size: 8px;
+        font-weight: 700;
+        text-align: center;
+    }
+
+    #modal-order-description .order-editor-error {
+        min-height: 17px;
+        margin-top: 10px;
+        color: #fda4af;
+        font-size: 9px;
+        font-weight: 800;
+    }
+
+    #modal-order-description .order-editor-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 14px 20px;
+        border-top: 1px solid rgba(148, 163, 184, 0.12);
+        background: rgba(2, 6, 23, 0.56);
+    }
+
+    #modal-order-description .order-editor-footer-group { display: flex; gap: 8px; }
+
+    #modal-order-description .order-editor-action {
+        min-height: 40px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 0 14px;
+        color: #cbd5e1;
+        border: 1px solid rgba(148, 163, 184, 0.16);
+        border-radius: 10px;
+        background: rgba(30, 41, 59, 0.78);
+        font-size: 9px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        cursor: pointer;
+    }
+
+    #modal-order-description .order-editor-action.is-save {
+        min-width: 142px;
+        color: #fff;
+        border-color: rgba(45, 212, 191, 0.5);
+        background: linear-gradient(135deg, #0f766e, #0d9488);
+        box-shadow: 0 8px 25px rgba(13, 148, 136, 0.18);
+    }
+
+    #modal-order-description .order-editor-action:hover,
+    #modal-order-description .order-editor-action:focus-visible {
+        color: #fff;
+        border-color: rgba(94, 234, 212, 0.58);
+        outline: none;
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 720px) {
+        #modal .manual-order-card {
+            grid-template-columns: 38px minmax(0, 1fr);
+            gap: 10px;
+            padding: 12px;
+        }
+
+        #modal .manual-order-icon { width: 38px; height: 38px; }
+        #modal .manual-order-actions { grid-column: 1 / -1; }
+        #modal .manual-order-btn { flex: 1; }
+        #modal .manual-order-status { grid-column: 1 / -1; }
+
+        #modal-order-description { padding: 9px; }
+        #modal-order-description .order-editor-shell { max-height: calc(100vh - 18px); border-radius: 17px; }
+        #modal-order-description .order-editor-header,
+        #modal-order-description .order-editor-body,
+        #modal-order-description .order-editor-footer { padding: 14px; }
+        #modal-order-description .order-editor-row { grid-template-columns: 28px minmax(0, 1fr); }
+        #modal-order-description .order-editor-row-actions { grid-column: 2; justify-content: flex-end; }
+        #modal-order-description .order-editor-footer { align-items: stretch; flex-direction: column-reverse; }
+        #modal-order-description .order-editor-footer-group { width: 100%; }
+        #modal-order-description .order-editor-action { flex: 1; padding: 0 10px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        #modal .manual-order-btn,
+        #modal .manual-order-add-next,
+        #modal-order-description .order-editor-action { transition: none; }
+    }
+</style>
+
+<script id="manual-description-order-v398-script">
+    (() => {
+        const STORAGE_KEY = 'motormax.description-order.v3';
+        const PREVIOUS_KEY = 'motormax.description-template.v2';
+        const LEGACY_KEY = 'motormax.description-template.v1';
+        const LEGACY_DEFAULT = 'NOME DA PEÇA + POSIÇÃO + TIPO / CARACTERÍSTICA + MEDIDAS + MARCA + CÓDIGO UNIVERSAL';
+        const MAX_PARTS = 12;
+        const DEFAULT_PARTS = ['NOME DA PEÇA'];
+
+        const icons = {
+            order: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+            edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
+            use: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+            close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+            up: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>',
+            down: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>',
+            trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v5M14 11v5"/></svg>',
+            save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8"/></svg>'
+        };
+
+        const cleanPart = value => String(value || '')
+            .replace(/\s+/g, ' ')
+            .trim()
+            .slice(0, 60);
+
+        const normalizeParts = parts => (Array.isArray(parts) ? parts : [])
+            .map(cleanPart)
+            .filter(Boolean)
+            .slice(0, MAX_PARTS);
+
+        const loadModel = () => {
+            try {
+                const current = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
+                const currentParts = normalizeParts(current?.parts);
+                if (currentParts.length) return { parts: currentParts };
+
+                const previous = JSON.parse(window.localStorage.getItem(PREVIOUS_KEY) || 'null');
+                const previousStructure = String(previous?.structure || '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .slice(0, 360);
+                if (previousStructure && previousStructure !== LEGACY_DEFAULT) {
+                    const migrated = normalizeParts(previousStructure.split(/\s*\+\s*/));
+                    if (migrated.length) return { parts: migrated };
+                }
+
+                const legacy = JSON.parse(window.localStorage.getItem(LEGACY_KEY) || 'null');
+                if (Array.isArray(legacy)) {
+                    const migrated = normalizeParts(legacy.map(item => item?.label));
+                    if (migrated.length && migrated.join(' + ') !== LEGACY_DEFAULT) return { parts: migrated };
+                }
+            } catch (error) {
+                /* Mantém o modelo inicial quando o armazenamento não estiver disponível. */
+            }
+            return { parts: [...DEFAULT_PARTS] };
+        };
+
+        const saveModel = model => {
+            try {
+                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(model));
+            } catch (error) {
+                /* A edição continua válida durante a sessão. */
+            }
+        };
+
+        const setupTeamMessageCounter = () => {
+            const input = document.getElementById('cfg-mensagem-colega');
+            const counter = document.getElementById('cfg-mensagem-contador');
+            if (!input || !counter || input.dataset.counterReady === 'true') return;
+            input.dataset.counterReady = 'true';
+            const update = () => { counter.textContent = input.value.length + '/280'; };
+            input.addEventListener('input', update);
+            update();
+        };
+
+        const init = () => {
+            setupTeamMessageCounter();
+            if (window.__manualDescriptionOrder398Ready) return true;
+
+            const descriptionBlock = document.querySelector('#modal .pro-description-block');
+            const descriptionsContainer = document.getElementById('container-descricoes');
+            if (!descriptionBlock || !descriptionsContainer || typeof window.adicionarCampoDescricao !== 'function') return false;
+
+            window.__manualDescriptionOrder398Ready = true;
+            let model = loadModel();
+            let draftParts = [];
+            let lastFocused = null;
+            let statusTimer = 0;
+
+            const card = document.createElement('section');
+            card.className = 'manual-order-card';
+            card.setAttribute('aria-label', 'Ordem da descrição');
+            card.innerHTML =
+                '<span class="manual-order-icon">' + icons.order + '</span>' +
+                '<div class="manual-order-copy">' +
+                    '<div class="manual-order-heading"><div><span class="manual-order-kicker">Modelo da descrição</span><strong class="manual-order-title">Ordem que será usada</strong></div></div>' +
+                    '<div class="manual-order-sequence" data-order-sequence></div>' +
+                '</div>' +
+                '<div class="manual-order-actions">' +
+                    '<button type="button" class="manual-order-btn is-primary" data-order-use>' + icons.use + '<span>Usar ordem</span></button>' +
+                    '<button type="button" class="manual-order-btn" data-order-edit>' + icons.edit + '<span>Editar ordem</span></button>' +
+                '</div>' +
+                '<div class="manual-order-status" data-order-status role="status" aria-live="polite"></div>';
+            descriptionBlock.insertBefore(card, descriptionsContainer);
+
+            const overlay = document.createElement('div');
+            overlay.id = 'modal-order-description';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'order-editor-title');
+            overlay.innerHTML =
+                '<div class="order-editor-shell">' +
+                    '<div class="order-editor-header">' +
+                        '<div class="order-editor-title-row"><span class="order-editor-mark">' + icons.order + '</span><div><span class="order-editor-kicker">Ordem personalizada</span><h3 id="order-editor-title" class="order-editor-title">Monte a descrição do seu jeito</h3></div></div>' +
+                        '<button type="button" class="order-editor-close" data-order-close aria-label="Fechar editor">' + icons.close + '</button>' +
+                    '</div>' +
+                    '<div class="order-editor-body">' +
+                        '<p class="order-editor-intro">Digite uma informação por linha. Use o botão + para incluir a próxima e as setas para mudar a ordem.</p>' +
+                        '<div class="order-editor-list" data-order-list></div>' +
+                        '<button type="button" class="order-editor-add" data-order-add><span aria-hidden="true">＋</span><span>Adicionar próxima informação</span></button>' +
+                        '<span class="order-editor-limit" data-order-limit></span>' +
+                        '<div class="order-editor-error" data-order-error role="alert"></div>' +
+                    '</div>' +
+                    '<div class="order-editor-footer">' +
+                        '<button type="button" class="order-editor-action" data-order-reset>Recomeçar</button>' +
+                        '<div class="order-editor-footer-group"><button type="button" class="order-editor-action" data-order-close>Cancelar</button><button type="button" class="order-editor-action is-save" data-order-save>' + icons.save + '<span>Salvar ordem</span></button></div>' +
+                    '</div>' +
+                '</div>';
+            document.body.appendChild(overlay);
+
+            const sequence = card.querySelector('[data-order-sequence]');
+            const status = card.querySelector('[data-order-status]');
+            const list = overlay.querySelector('[data-order-list]');
+            const addButton = overlay.querySelector('[data-order-add]');
+            const limit = overlay.querySelector('[data-order-limit]');
+            const error = overlay.querySelector('[data-order-error]');
+
+            const showStatus = message => {
+                status.textContent = message;
+                window.clearTimeout(statusTimer);
+                statusTimer = window.setTimeout(() => { status.textContent = ''; }, 2800);
+            };
+
+            const focusRow = index => {
+                window.requestAnimationFrame(() => {
+                    const field = list.querySelector('[data-order-index="' + index + '"]');
+                    field?.focus({ preventScroll: true });
+                });
+            };
+
+            const renderCard = () => {
+                sequence.replaceChildren();
+                model.parts.forEach((part, index) => {
+                    if (index > 0) {
+                        const plus = document.createElement('span');
+                        plus.className = 'manual-order-plus';
+                        plus.setAttribute('aria-hidden', 'true');
+                        plus.textContent = '+';
+                        sequence.appendChild(plus);
+                    }
+                    const chip = document.createElement('span');
+                    chip.className = 'manual-order-chip';
+                    chip.textContent = part;
+                    sequence.appendChild(chip);
+                });
+
+                const trailingPlus = document.createElement('button');
+                trailingPlus.type = 'button';
+                trailingPlus.className = 'manual-order-add-next';
+                trailingPlus.textContent = '+';
+                trailingPlus.title = 'Adicionar a próxima informação';
+                trailingPlus.setAttribute('aria-label', 'Adicionar a próxima informação');
+                trailingPlus.addEventListener('click', event => openEditor(event.currentTarget, true));
+                sequence.appendChild(trailingPlus);
+            };
+
+            const renderEditor = focusIndex => {
+                list.replaceChildren();
+                draftParts.forEach((part, index) => {
+                    const row = document.createElement('div');
+                    row.className = 'order-editor-row';
+
+                    const number = document.createElement('span');
+                    number.className = 'order-editor-number';
+                    number.textContent = String(index + 1).padStart(2, '0');
+
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'order-editor-input';
+                    input.maxLength = 60;
+                    input.autocomplete = 'off';
+                    input.placeholder = 'DIGITE A INFORMAÇÃO';
+                    input.value = part;
+                    input.dataset.orderIndex = String(index);
+                    input.setAttribute('aria-label', 'Informação ' + (index + 1) + ' da ordem');
+                    input.addEventListener('input', () => {
+                        draftParts[index] = input.value;
+                        error.textContent = '';
+                    });
+                    input.addEventListener('keydown', event => {
+                        if (event.key !== 'Enter') return;
+                        event.preventDefault();
+                        if (index < draftParts.length - 1) {
+                            focusRow(index + 1);
+                        } else {
+                            addPart();
+                        }
+                    });
+
+                    const actions = document.createElement('div');
+                    actions.className = 'order-editor-row-actions';
+
+                    const makeAction = (html, label, className, disabled, handler) => {
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'order-editor-icon-btn' + (className ? ' ' + className : '');
+                        button.innerHTML = html;
+                        button.title = label;
+                        button.setAttribute('aria-label', label);
+                        button.disabled = disabled;
+                        button.addEventListener('click', handler);
+                        return button;
+                    };
+
+                    actions.append(
+                        makeAction(icons.up, 'Mover para cima', '', index === 0, () => movePart(index, -1)),
+                        makeAction(icons.down, 'Mover para baixo', '', index === draftParts.length - 1, () => movePart(index, 1)),
+                        makeAction(icons.trash, 'Excluir informação', 'is-delete', false, () => removePart(index))
+                    );
+
+                    row.append(number, input, actions);
+                    list.appendChild(row);
+
+                    if (index < draftParts.length - 1) {
+                        const separator = document.createElement('div');
+                        separator.className = 'order-editor-separator';
+                        separator.setAttribute('aria-hidden', 'true');
+                        separator.textContent = '+';
+                        list.appendChild(separator);
+                    }
+                });
+
+                addButton.disabled = draftParts.length >= MAX_PARTS;
+                addButton.style.display = draftParts.length >= MAX_PARTS ? 'none' : 'flex';
+                limit.textContent = draftParts.length + ' de ' + MAX_PARTS + ' informações';
+                if (Number.isInteger(focusIndex)) focusRow(focusIndex);
+            };
+
+            const addPart = () => {
+                if (draftParts.length >= MAX_PARTS) return;
+                draftParts.push('');
+                renderEditor(draftParts.length - 1);
+            };
+
+            const movePart = (index, direction) => {
+                const target = index + direction;
+                if (target < 0 || target >= draftParts.length) return;
+                [draftParts[index], draftParts[target]] = [draftParts[target], draftParts[index]];
+                renderEditor(target);
+            };
+
+            const removePart = index => {
+                if (draftParts.length === 1) {
+                    draftParts[0] = '';
+                    renderEditor(0);
+                    return;
+                }
+                draftParts.splice(index, 1);
+                renderEditor(Math.min(index, draftParts.length - 1));
+            };
+
+            const openEditor = (trigger, addBlank = false) => {
+                lastFocused = trigger || document.activeElement;
+                draftParts = [...model.parts];
+                if (addBlank && draftParts.length < MAX_PARTS) draftParts.push('');
+                error.textContent = '';
+                overlay.classList.add('is-open');
+                renderEditor(addBlank ? draftParts.length - 1 : 0);
+            };
+
+            const closeEditor = () => {
+                overlay.classList.remove('is-open');
+                if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus({ preventScroll: true });
+            };
+
+            const commitEditor = () => {
+                const parts = normalizeParts(draftParts);
+                if (!parts.length) {
+                    error.textContent = 'Digite pelo menos uma informação para salvar a ordem.';
+                    focusRow(0);
+                    return;
+                }
+                model = { parts };
+                saveModel(model);
+                renderCard();
+                closeEditor();
+                showStatus('Ordem atualizada.');
+            };
+
+            const useOrder = () => {
+                const value = model.parts.join(' + ');
+                const emptyField = Array.from(descriptionsContainer.querySelectorAll('.input-desc-item'))
+                    .find(field => !field.value.trim());
+                if (emptyField) {
+                    emptyField.value = value;
+                    emptyField.dispatchEvent(new Event('input', { bubbles: true }));
+                    emptyField.focus();
+                    emptyField.setSelectionRange(emptyField.value.length, emptyField.value.length);
+                    emptyField.closest('.pro-description-item')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                } else {
+                    window.adicionarCampoDescricao(value);
+                }
+                showStatus('Ordem inserida na descrição.');
+            };
+
+            card.querySelector('[data-order-use]').addEventListener('click', useOrder);
+            card.querySelector('[data-order-edit]').addEventListener('click', event => openEditor(event.currentTarget));
+            addButton.addEventListener('click', addPart);
+            overlay.querySelector('[data-order-save]').addEventListener('click', commitEditor);
+            overlay.querySelector('[data-order-reset]').addEventListener('click', () => {
+                draftParts = [...DEFAULT_PARTS];
+                error.textContent = '';
+                renderEditor(0);
+            });
+            overlay.querySelectorAll('[data-order-close]').forEach(button => button.addEventListener('click', closeEditor));
+            overlay.addEventListener('mousedown', event => {
+                if (event.target === overlay) closeEditor();
+            });
+
+            window.addEventListener('keydown', event => {
+                if (!overlay.classList.contains('is-open')) return;
+                if (event.key === 'Escape') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    closeEditor();
+                    return;
+                }
+                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    commitEditor();
+                    return;
+                }
+                if (event.key === 'Tab') {
+                    const focusable = Array.from(overlay.querySelectorAll('button:not([disabled]), input:not([disabled])'))
+                        .filter(element => element.offsetParent !== null);
+                    if (!focusable.length) return;
+                    const first = focusable[0];
+                    const last = focusable[focusable.length - 1];
+                    if (event.shiftKey && document.activeElement === first) {
+                        event.preventDefault();
+                        last.focus();
+                    } else if (!event.shiftKey && document.activeElement === last) {
+                        event.preventDefault();
+                        first.focus();
+                    }
+                }
+            }, true);
+
+            renderCard();
+            saveModel(model);
+            window.editarModeloDescricao = () => openEditor(card.querySelector('[data-order-edit]'));
+            return true;
+        };
+
+        if (!init()) {
+            const retry = window.setInterval(() => {
+                setupTeamMessageCounter();
+                if (init()) window.clearInterval(retry);
+            }, 80);
+            window.setTimeout(() => window.clearInterval(retry), 6500);
         }
     })();
 </script>
