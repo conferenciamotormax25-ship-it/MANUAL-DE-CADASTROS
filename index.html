@@ -195,6 +195,8 @@
             overflow: auto;
             min-width: 260px;
             min-height: 180px;
+            content-visibility: auto;
+            contain-intrinsic-size: 0 420px;
         }
 
         /* alça de redimensionar mais visível no canto do card */
@@ -215,11 +217,10 @@
             mask-composite: exclude;
             opacity: 0;
             transition: opacity 0.35s;
-            animation: rotateBorder 4s linear infinite;
             pointer-events: none;
         }
 
-        .manual2-card:hover::before { opacity: 1; }
+        .manual2-card:hover::before { opacity: 1; animation: rotateBorder 4s linear infinite; }
 
         @keyframes rotateBorder {
             to { --card-angle: 360deg; }
@@ -386,6 +387,8 @@
             grid-template-columns: 2fr 1.5fr 150px;
             align-items: center;
             gap: 15px;
+            content-visibility: auto;
+            contain-intrinsic-size: 0 78px;
         }
 
         .copy-feedback {
@@ -1756,10 +1759,10 @@
                 </svg>
             </div>
             <h2 class="text-xl font-black text-white uppercase italic mb-4 text-center">Registro Duplicado!</h2>
-            <p class="text-slate-400 text-[10px] font-bold text-center mb-8 uppercase tracking-widest leading-relaxed">Já existe um cadastro com estas informações exatas. Deseja criar uma cópia?</p>
+            <p class="text-slate-400 text-[10px] font-bold text-center mb-8 uppercase tracking-widest leading-relaxed">Já existe um card com estas informações. Nenhuma cópia será criada; abra o cadastro existente para conferir ou editar.</p>
             <div class="w-full space-y-3">
-                <button id="btn-confirmar-duplicado" class="w-full bg-blue-600 p-5 rounded-2xl font-black text-white uppercase text-xs">Sim, Cadastrar Cópia</button>
-                <button onclick="fecharModalDuplicado()" class="w-full bg-slate-800 p-5 rounded-2xl font-black text-slate-400 uppercase text-xs">Cancelar</button>
+                <button id="btn-confirmar-duplicado" onclick="window.abrirDuplicadoExistente()" class="w-full bg-blue-600 p-5 rounded-2xl font-black text-white uppercase text-xs">Abrir Cadastro Existente</button>
+                <button onclick="fecharModalDuplicado()" class="w-full bg-slate-800 p-5 rounded-2xl font-black text-slate-400 uppercase text-xs">Voltar</button>
             </div>
         </div>
     </div>
@@ -2005,7 +2008,7 @@
     <!-- >>>>>>>>>>>>>>>>>>>> SUBSTITUI O SEU <script type="module"> COMPLETO (JS) ABAIXO >>>>>>>>>>>>>>>>>>>> -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getFirestore, collection, addDoc, onSnapshot, query, doc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { getFirestore, collection, onSnapshot, query, doc, updateDoc, deleteDoc, serverTimestamp, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
         const firebaseConfig = {
@@ -2026,6 +2029,9 @@
         let paginaAtual = 1;
         let idCardFocadoBusca = null;
         let buscaProntaParaFocoAutomatico = false;
+        let reiniciarBuscaNaProximaDigitacao = false;
+        let salvamentoEmAndamento = false;
+        let duplicadoPendente = null;
         let cancelarEscutaAtual = null;
         let contextoEmEscuta = null;
         const itensPorPagina = 3;
@@ -2062,8 +2068,7 @@
         const zoomControls = document.getElementById('zoomControls');
 
         // NOVO: estado do salvar -> abre modal-config-card antes de gravar
-        let _pendingSave = null; // { confirmado, id, v, d, o, codOriginal, codGenerico, aplicacao, marca, codBarras }
-        let _pendDuplicadoConfirm = false;
+        let _pendingSave = null; // { id, v, d, o, codOriginal, codGenerico, aplicacao, marca, codBarras }
 
         const extrasDefaultFromToggle = () => {
             // Mantém seu HTML intacto: usa o toggle antigo "mostrar essas informações no card"
@@ -2133,12 +2138,18 @@
         };
 
         window.confirmarConfigCard = async () => {
+            if(salvamentoEmAndamento || !_pendingSave) return;
+            definirSalvamentoEmAndamento(true);
             try {
-                if (!_pendingSave) return;
-
                 const payloadCfg = lerCfgCheckboxes();
                 const p = _pendingSave;
                 const recado = document.getElementById('cfg-mensagem-colega').value.trim();
+
+                const duplicadoRecente = localizarDuplicadoVeiculo(p.v, p.d, p.id);
+                if(duplicadoRecente) {
+                    exibirAvisoDuplicado(duplicadoRecente, 'veiculos');
+                    return;
+                }
 
                 // sempre inclui extrasConfig no documento
                 const payload = {
@@ -2167,9 +2178,17 @@
                     payload.mensagemEm = serverTimestamp();
                 }
 
-                if (p.id) await updateDoc(doc(db, "cadastros_veiculos", p.id), payload);
-                else {
-                    const ref = await addDoc(collection(db, "cadastros_veiculos"), payload);
+                if (p.id) {
+                    await updateDoc(doc(db, "cadastros_veiculos", p.id), payload);
+                } else {
+                    const ref = doc(db, "cadastros_veiculos", criarIdDocumentoUnico('veiculo', p.v, p.d));
+                    await runTransaction(db, async transaction => {
+                        const existente = await transaction.get(ref);
+                        if(existente.exists()) {
+                            throw criarErroDuplicado({ id: ref.id, ...existente.data() }, 'veiculos');
+                        }
+                        transaction.set(ref, payload);
+                    });
                     idSalvoRecentemente = ref.id;
                 }
 
@@ -2179,7 +2198,15 @@
 
                 document.getElementById('modal-success-overlay').style.display = 'flex';
                 setTimeout(fecharModal, 800);
+            } catch(error) {
+                if(error?.code === 'registro-duplicado' || error?.message === 'REGISTRO_DUPLICADO') {
+                    exibirAvisoDuplicado(error.registro || { id: '', veiculo: _pendingSave?.v || '' }, 'veiculos');
+                } else {
+                    console.error('Falha ao salvar cadastro:', error);
+                    window.alert('Não foi possível salvar o cadastro. Verifique a conexão e tente novamente.');
+                }
             } finally {
+                definirSalvamentoEmAndamento(false);
                 _pendingSave = null;
             }
         };
@@ -2196,10 +2223,14 @@
         // LÓGICA DE ROLAGEM (Header + Zoom)
         window.addEventListener('scroll', () => {
             let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            if (scrollTop > lastScrollTop && scrollTop > 150) {
+            const buscaCompactaAtiva = document.body.classList.contains('search-compact-mode');
+            const rolandoParaBaixo = scrollTop > lastScrollTop;
+            const limiteParaEsconder = buscaCompactaAtiva ? 2 : 150;
+
+            if (rolandoParaBaixo && scrollTop > limiteParaEsconder) {
                 mainHeader.classList.add('header-hidden');
                 zoomControls.classList.add('zoom-hidden'); // ESCONDE ZOOM AO ROLAR
-            } else {
+            } else if (!buscaCompactaAtiva || scrollTop < lastScrollTop || scrollTop <= 0) {
                 mainHeader.classList.remove('header-hidden');
                 zoomControls.classList.remove('zoom-hidden'); // MOSTRA ZOOM AO VOLTAR
             }
@@ -2245,7 +2276,8 @@
             if (e.ctrlKey || e.altKey || e.metaKey || document.activeElement === inputPesquisa) return;
 
             if (e.key.length === 1) {
-                const valorAtual = inputPesquisa.value;
+                const deveReiniciar = reiniciarBuscaNaProximaDigitacao || idCardFocadoBusca || document.body.classList.contains('search-focus-mode');
+                const valorAtual = deveReiniciar ? '' : inputPesquisa.value;
                 e.preventDefault();
                 document.body.classList.remove('search-focus-mode');
                 mainHeader.classList.remove('header-hidden');
@@ -2253,6 +2285,8 @@
                 filtroLetra = "";
                 idCardFocadoBusca = null;
                 buscaProntaParaFocoAutomatico = false;
+                reiniciarBuscaNaProximaDigitacao = false;
+                inputPesquisa.value = valorAtual;
                 inputPesquisa.focus();
                 const posicaoFinal = valorAtual.length;
                 inputPesquisa.setSelectionRange(posicaoFinal, posicaoFinal);
@@ -2271,6 +2305,7 @@
             contextoAtual = ctx;
             idCardFocadoBusca = null;
             buscaProntaParaFocoAutomatico = false;
+            reiniciarBuscaNaProximaDigitacao = false;
             document.getElementById('tab-veiculos').classList.toggle('active', ctx === 'veiculos');
             document.getElementById('tab-genericos').classList.toggle('active', ctx === 'genericos');
             document.getElementById('listaItens').className = ctx === 'genericos' ? 'p-8 max-w-[1900px] mx-auto grid-list-view mt-10' : 'p-8 max-w-[1900px] mx-auto gap-6 mt-10';
@@ -2315,19 +2350,23 @@
             filtroLetra = "";
             idCardFocadoBusca = null;
             buscaProntaParaFocoAutomatico = false;
+            reiniciarBuscaNaProximaDigitacao = false;
             clearTimeout(temporizadorFocoBusca);
             window.resetarPaginaERenderizar();
         };
 
         window.sairFocoBusca = () => {
             const inputPesquisa = document.getElementById('inputPesquisa');
-            if (idCardFocadoBusca) {
-                idCardFocadoBusca = null;
-                paginaAtual = 1;
-                renderizar();
-            } else {
-                window.limparBusca();
+            window.limparBusca();
+            document.body.classList.remove('search-compact-mode', 'search-focus-mode');
+
+            const alphabet = document.getElementById('filtros-letras');
+            if (alphabet) {
+                alphabet.hidden = false;
+                alphabet.setAttribute('aria-hidden', 'false');
+                alphabet.style.removeProperty('display');
             }
+
             requestAnimationFrame(() => {
                 mainHeader.classList.remove('header-hidden');
                 zoomControls.classList.remove('zoom-hidden');
@@ -2340,6 +2379,7 @@
             if (!id || normalizarTextoBusca(inputPesquisa.value).length < 2) return;
             if (event?.target?.closest('button, a, input, textarea, select, .info-chip, .box-main, [role="button"]')) return;
             idCardFocadoBusca = id;
+            reiniciarBuscaNaProximaDigitacao = true;
             paginaAtual = 1;
             renderizar();
         };
@@ -2347,13 +2387,98 @@
         window.resetarPaginaERenderizar = () => { paginaAtual = 1; renderizar(); };
         window.mudarPagina = (delta) => { paginaAtual += delta; renderizar(); window.scrollTo({top: 0, behavior: 'smooth'}); };
 
-        const normalizarTextoBusca = (valor = '') => String(valor)
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLocaleLowerCase('pt-BR')
-            .replace(/[^a-z0-9]+/g, ' ')
-            .trim()
-            .replace(/\s+/g, ' ');
+        const cacheNormalizacaoBusca = new Map();
+        const normalizarTextoBusca = (valor = '') => {
+            const original = String(valor);
+            if(cacheNormalizacaoBusca.has(original)) return cacheNormalizacaoBusca.get(original);
+
+            const normalizado = original
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLocaleLowerCase('pt-BR')
+                .replace(/[^a-z0-9]+/g, ' ')
+                .trim()
+                .replace(/\s+/g, ' ');
+
+            if(cacheNormalizacaoBusca.size >= 4000) cacheNormalizacaoBusca.clear();
+            cacheNormalizacaoBusca.set(original, normalizado);
+            return normalizado;
+        };
+
+        const criarChaveUnica = (...valores) => valores.map(normalizarTextoBusca).join('|');
+
+        const criarIdDocumentoUnico = (prefixo, ...valores) => {
+            const chave = criarChaveUnica(...valores);
+            let hash = 2166136261;
+            for(let i = 0; i < chave.length; i++) {
+                hash ^= chave.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+            const resumo = chave.replace(/\s+/g, '_').slice(0, 100) || 'registro';
+            return `${prefixo}_${(hash >>> 0).toString(36)}_${resumo}`;
+        };
+
+        const localizarDuplicadoVeiculo = (veiculo, descricao, idAtual = '') => {
+            const chave = criarChaveUnica(veiculo, descricao);
+            return dadosOriginais.find(item =>
+                String(item.id) !== String(idAtual) &&
+                criarChaveUnica(item.veiculo, item.descricao) === chave
+            ) || null;
+        };
+
+        const localizarDuplicadoGenerico = (peca, marca, idAtual = '') => {
+            const chave = criarChaveUnica(peca, marca);
+            return dadosGenericos.find(item =>
+                String(item.id) !== String(idAtual) &&
+                criarChaveUnica(item.peca, item.marca) === chave
+            ) || null;
+        };
+
+        const exibirAvisoDuplicado = (registro, tipo) => {
+            duplicadoPendente = { registro, tipo };
+            document.getElementById('modal-config-card').style.display = 'none';
+            document.getElementById('modal-duplicado').style.display = 'flex';
+        };
+
+        const criarErroDuplicado = (registro, tipo) => {
+            const erro = new Error('REGISTRO_DUPLICADO');
+            erro.code = 'registro-duplicado';
+            erro.registro = registro;
+            erro.tipo = tipo;
+            return erro;
+        };
+
+        const definirSalvamentoEmAndamento = (ativo) => {
+            salvamentoEmAndamento = ativo;
+            document.querySelectorAll('#modal-config-card button[onclick*="confirmarConfigCard"], #modal-generico button[onclick*="salvarGenerico"]').forEach(button => {
+                button.disabled = ativo;
+                button.setAttribute('aria-busy', ativo ? 'true' : 'false');
+                button.style.opacity = ativo ? '0.6' : '';
+                button.style.cursor = ativo ? 'wait' : '';
+            });
+        };
+
+        window.abrirDuplicadoExistente = () => {
+            const alvo = duplicadoPendente;
+            if(!alvo?.registro) return window.fecharModalDuplicado();
+
+            const { registro, tipo } = alvo;
+            const termo = tipo === 'veiculos' ? registro.veiculo : registro.peca;
+            window.fecharModalDuplicado();
+            window.fecharModalConfigCard();
+            if(tipo === 'veiculos') window.fecharModal();
+            else window.fecharModalGenerico();
+
+            const inputPesquisa = document.getElementById('inputPesquisa');
+            inputPesquisa.value = termo || '';
+            filtroLetra = '';
+            idCardFocadoBusca = registro.id || null;
+            buscaProntaParaFocoAutomatico = false;
+            reiniciarBuscaNaProximaDigitacao = true;
+            paginaAtual = 1;
+            duplicadoPendente = null;
+            renderizar();
+        };
 
         const escaparHtml = (valor = '') => String(valor)
             .replace(/&/g, '&amp;')
@@ -2599,6 +2724,7 @@
             }
 
             if (buscaIsolada && melhorResultadoId) {
+                reiniciarBuscaNaProximaDigitacao = true;
                 requestAnimationFrame(() => {
                     const cardEncontrado = document.getElementById(`card-${melhorResultadoId}`);
                     buscaInput.blur();
@@ -2726,7 +2852,7 @@
         window.fecharModalDuplicado = () => document.getElementById('modal-duplicado').style.display = 'none';
 
         // >>>>>>>>>>>>>> SALVAR: agora abre modal-config-card primeiro <<<<<<<<<<<<<<
-        window.salvar = async (confirmado = false) => {
+        window.salvar = async () => {
             const modal = document.querySelector('#modal > div');
             const id = document.getElementById('form-id').value;
 
@@ -2749,18 +2875,14 @@
 
             const d = descricoes.join('\n');
 
-            if(!id && !confirmado) {
-                const existe = dadosOriginais.some(item => item.veiculo === v && item.descricao === d);
-                if(existe) {
-                    document.getElementById('modal-duplicado').style.display = 'flex';
-                    document.getElementById('btn-confirmar-duplicado').onclick = () => window.salvar(true);
-                    return;
-                }
+            const duplicado = localizarDuplicadoVeiculo(v, d, id);
+            if(duplicado) {
+                exibirAvisoDuplicado(duplicado, 'veiculos');
+                return;
             }
 
             // prepara payload pendente para depois do modal-config-card
             _pendingSave = {
-                confirmado,
                 id: id ? id : null,
                 v, d, o, codOriginal, codGenerico, aplicacao, marca, codBarras
             };
@@ -2777,7 +2899,9 @@
             window.abrirModalConfigCard();
         };
 
-        window.salvarGenerico = async (confirmado = false) => {
+        window.salvarGenerico = async () => {
+            if(salvamentoEmAndamento) return;
+
             const modal = document.querySelector('#modal-generico > div');
             const id = document.getElementById('form-gen-id').value;
             const p = document.getElementById('form-gen-peca').value.toUpperCase().trim();
@@ -2792,22 +2916,42 @@
 
             const m = marcas.join(' / ');
 
-            if(!id && !confirmado) {
-                const existe = dadosGenericos.some(item => item.peca === p && item.marca === m);
-                if(existe) {
-                    document.getElementById('modal-duplicado').style.display = 'flex';
-                    document.getElementById('btn-confirmar-duplicado').onclick = () => window.salvarGenerico(true);
-                    return;
-                }
+            const duplicado = localizarDuplicadoGenerico(p, m, id);
+            if(duplicado) {
+                exibirAvisoDuplicado(duplicado, 'genericos');
+                return;
             }
 
-            const payload = { peca: p, marca: m, atualizadoEm: serverTimestamp() };
-            if(id) await updateDoc(doc(db, "codigos_genericos", id), payload);
-            else { const ref = await addDoc(collection(db, "codigos_genericos"), payload); idSalvoRecentemente = ref.id; }
-            
-            fecharModalDuplicado();
-            document.getElementById('modal-success-overlay-gen').classList.remove('hidden');
-            setTimeout(fecharModalGenerico, 800);
+            definirSalvamentoEmAndamento(true);
+            try {
+                const payload = { peca: p, marca: m, atualizadoEm: serverTimestamp() };
+                if(id) {
+                    await updateDoc(doc(db, "codigos_genericos", id), payload);
+                } else {
+                    const ref = doc(db, "codigos_genericos", criarIdDocumentoUnico('generico', p, m));
+                    await runTransaction(db, async transaction => {
+                        const existente = await transaction.get(ref);
+                        if(existente.exists()) {
+                            throw criarErroDuplicado({ id: ref.id, ...existente.data() }, 'genericos');
+                        }
+                        transaction.set(ref, payload);
+                    });
+                    idSalvoRecentemente = ref.id;
+                }
+
+                fecharModalDuplicado();
+                document.getElementById('modal-success-overlay-gen').classList.remove('hidden');
+                setTimeout(fecharModalGenerico, 800);
+            } catch(error) {
+                if(error?.code === 'registro-duplicado' || error?.message === 'REGISTRO_DUPLICADO') {
+                    exibirAvisoDuplicado(error.registro || { id: '', peca: p, marca: m }, 'genericos');
+                } else {
+                    console.error('Falha ao salvar código genérico:', error);
+                    window.alert('Não foi possível salvar o cadastro. Verifique a conexão e tente novamente.');
+                }
+            } finally {
+                definirSalvamentoEmAndamento(false);
+            }
         };
 
         window.excluirItem = (id) => { idParaExcluir = id; window.targetCol = "cadastros_veiculos"; document.getElementById('modal-delete').style.display = 'flex'; };
@@ -2869,6 +3013,7 @@
             document.getElementById('inputPesquisa').value = "";
             idCardFocadoBusca = null;
             buscaProntaParaFocoAutomatico = false;
+            reiniciarBuscaNaProximaDigitacao = false;
             clearTimeout(temporizadorFocoBusca);
             filtroLetra = l; 
             resetarPaginaERenderizar();
@@ -2883,17 +3028,39 @@
 
         let temporizadorBusca = 0;
         let temporizadorFocoBusca = 0;
-        document.getElementById('inputPesquisa').addEventListener('input', () => {
+        const inputPesquisaPrincipal = document.getElementById('inputPesquisa');
+
+        inputPesquisaPrincipal.addEventListener('beforeinput', event => {
+            const deveReiniciar = reiniciarBuscaNaProximaDigitacao || idCardFocadoBusca || document.body.classList.contains('search-focus-mode');
+            if(!deveReiniciar || !String(event.inputType).startsWith('insert')) return;
+            inputPesquisaPrincipal.value = '';
+            filtroLetra = '';
             idCardFocadoBusca = null;
             buscaProntaParaFocoAutomatico = false;
-            if(document.getElementById('inputPesquisa').value.length > 0) filtroLetra = "";
+            reiniciarBuscaNaProximaDigitacao = false;
+            document.body.classList.remove('search-focus-mode');
+        });
+
+        document.getElementById('listaItens').addEventListener('pointerdown', event => {
+            if(event.target.closest('.manual2-card, .generic-row') && inputPesquisaPrincipal.value.trim()) {
+                reiniciarBuscaNaProximaDigitacao = true;
+            }
+        }, { passive: true });
+
+        inputPesquisaPrincipal.addEventListener('input', () => {
+            idCardFocadoBusca = null;
+            buscaProntaParaFocoAutomatico = false;
+            reiniciarBuscaNaProximaDigitacao = false;
+            if(inputPesquisaPrincipal.value.length > 0) filtroLetra = "";
             clearTimeout(temporizadorBusca);
             clearTimeout(temporizadorFocoBusca);
-            temporizadorBusca = setTimeout(window.resetarPaginaERenderizar, 180);
+            temporizadorBusca = setTimeout(window.resetarPaginaERenderizar, 90);
             temporizadorFocoBusca = setTimeout(() => {
+                // Depois de uma pequena pausa, um unico resultado volta a
+                // receber foco total, como no comportamento original.
                 buscaProntaParaFocoAutomatico = true;
                 window.resetarPaginaERenderizar();
-            }, 600);
+            }, 400);
         });
         
         login();
@@ -2936,23 +3103,38 @@
             // Leve tilt 3D nos cards ao passar o mouse (respeita prefers-reduced-motion)
             const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
             if (!reduceMotion) {
+                let cardInclinado = null;
+                let tiltFrame = 0;
+                let ultimoPonteiro = null;
+
                 document.addEventListener('mousemove', (e) => {
                     const card = e.target.closest('.manual2-card');
-                    document.querySelectorAll('.manual2-card.is-tilting').forEach(c => {
-                        if (c !== card) { c.style.transform = ''; c.classList.remove('is-tilting'); }
+                    if(cardInclinado && cardInclinado !== card) {
+                        cardInclinado.style.transform = '';
+                        cardInclinado.classList.remove('is-tilting');
+                    }
+                    cardInclinado = card;
+                    if(!card) return;
+
+                    ultimoPonteiro = { x: e.clientX, y: e.clientY, card };
+                    if(tiltFrame) return;
+                    tiltFrame = requestAnimationFrame(() => {
+                        tiltFrame = 0;
+                        if(!ultimoPonteiro?.card?.isConnected) return;
+                        const atual = ultimoPonteiro.card;
+                        const rect = atual.getBoundingClientRect();
+                        const px = (ultimoPonteiro.x - rect.left) / rect.width - 0.5;
+                        const py = (ultimoPonteiro.y - rect.top) / rect.height - 0.5;
+                        atual.classList.add('is-tilting');
+                        atual.style.transform = `translateY(-4px) rotateX(${(-py * 6).toFixed(2)}deg) rotateY(${(px * 6).toFixed(2)}deg)`;
                     });
-                    if (!card) return;
-                    const rect = card.getBoundingClientRect();
-                    const px = (e.clientX - rect.left) / rect.width - 0.5;
-                    const py = (e.clientY - rect.top) / rect.height - 0.5;
-                    card.classList.add('is-tilting');
-                    card.style.transform = `translateY(-4px) rotateX(${(-py * 6).toFixed(2)}deg) rotateY(${(px * 6).toFixed(2)}deg)`;
                 }, { passive: true });
 
                 document.addEventListener('mouseleave', (e) => {
                     if (e.target && e.target.classList && e.target.classList.contains('manual2-card')) {
                         e.target.style.transform = '';
                         e.target.classList.remove('is-tilting');
+                        if(cardInclinado === e.target) cardInclinado = null;
                     }
                 }, true);
             }
@@ -10892,6 +11074,254 @@
             }, 80);
             window.setTimeout(() => window.clearInterval(retry), 6500);
         }
+    })();
+</script>
+
+<!-- ================================================================
+     MODO DE BUSCA OTIMIZADO v4.0
+     Recolhe a area superior sem tirar o foco e fixa 3 cards no desktop.
+================================================================= -->
+<style id="search-compact-three-cards-v40">
+    #mainHeader,
+    #zoomControls,
+    #listaItens {
+        transition:
+            transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+            opacity 0.22s ease,
+            margin 0.28s ease,
+            padding 0.28s ease;
+    }
+
+    /* Mantem apenas a pesquisa em uma barra discreta e fixa. */
+    body.search-compact-mode #mainHeader {
+        position: fixed !important;
+        top: 10px !important;
+        left: 50% !important;
+        right: auto !important;
+        bottom: auto !important;
+        width: min(680px, calc(100% - 160px));
+        opacity: 1 !important;
+        pointer-events: none !important;
+        transform: translateX(-50%) !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        z-index: 140;
+    }
+
+    /* A rolagem para baixo reaproveita a classe original e recolhe a busca. */
+    body.search-compact-mode #mainHeader.header-hidden {
+        opacity: 0 !important;
+        pointer-events: none !important;
+        transform: translate(-50%, -145%) !important;
+    }
+
+    /* Ao entrar em foco total, o card fica sozinho sem a busca sobreposta. */
+    body.search-compact-mode.search-focus-mode #mainHeader {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translate(-50%, -145%) !important;
+    }
+
+    body.search-compact-mode #mainHeader.header-hidden section,
+    body.search-compact-mode.search-focus-mode #mainHeader section {
+        pointer-events: none !important;
+    }
+
+    body.search-compact-mode #mainHeader::after,
+    body.search-compact-mode #mainHeader header,
+    body.search-compact-mode #search-feedback,
+    body.search-compact-mode #mainHeader .toggle-container,
+    body.search-compact-mode #filtros-letras,
+    body.search-compact-mode #enterprise-view-toolbar,
+    body.search-compact-mode #mainHeader section > .flex > .flex.gap-2 {
+        display: none !important;
+    }
+
+    /* Garantia extra: nenhum botao alfabetico pode ficar solto sobre os cards. */
+    html body.search-compact-mode #filtros-letras,
+    html body.search-compact-mode #filtros-letras .btn-l,
+    html body.search-compact-mode .btn-l {
+        display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        min-width: 0 !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: 0 !important;
+        overflow: hidden !important;
+        pointer-events: none !important;
+    }
+
+    body.search-compact-mode #mainHeader section {
+        width: 100%;
+        max-width: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        pointer-events: auto;
+        background: transparent !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+
+    body.search-compact-mode #mainHeader section > .flex {
+        display: block !important;
+    }
+
+    body.search-compact-mode #inputPesquisa {
+        width: 100%;
+        height: 48px;
+        min-height: 48px;
+        padding: 0 52px 0 18px !important;
+        border-radius: 14px !important;
+        color: #f8fafc !important;
+        background:
+            linear-gradient(145deg, rgba(8, 17, 36, 0.94), rgba(5, 10, 24, 0.96)) padding-box,
+            linear-gradient(110deg, rgba(66, 133, 244, 0.70), rgba(139, 92, 246, 0.50), rgba(34, 211, 238, 0.42)) border-box !important;
+        box-shadow:
+            0 12px 32px -18px rgba(0, 0, 0, 0.95),
+            0 8px 28px -18px rgba(59, 130, 246, 0.85),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+        font-size: 0.78rem !important;
+        letter-spacing: 0.025em !important;
+    }
+
+    body.search-compact-mode #inputPesquisa:focus {
+        box-shadow:
+            0 0 0 3px rgba(59, 130, 246, 0.13),
+            0 14px 36px -18px rgba(34, 211, 238, 0.72),
+            inset 0 1px 0 rgba(255, 255, 255, 0.07) !important;
+    }
+
+    body.search-compact-mode #btnLimpar {
+        right: 14px !important;
+        color: #94a3b8 !important;
+    }
+
+    body.search-compact-mode #btn-desfiltrar-flutuante,
+    body.search-compact-mode #btn-topo {
+        display: none !important;
+    }
+
+    body.search-compact-mode #zoomControls {
+        opacity: 0 !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+        transform: translateY(-160%) !important;
+    }
+
+    body.search-compact-mode #listaItens:not(.search-isolated) {
+        margin-top: 0 !important;
+        padding-top: 76px !important;
+    }
+
+    /* Tres posicoes fixas: dois resultados nao se alargam para ocupar metade da tela. */
+    @media (min-width: 1050px) {
+        #listaItens.enterprise-view-grid:not(.search-isolated),
+        #listaItens.enterprise-view-compact:not(.search-isolated) {
+            grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+            grid-auto-flow: row !important;
+        }
+    }
+
+    @media (min-width: 700px) and (max-width: 1049px) {
+        #listaItens.enterprise-view-grid:not(.search-isolated),
+        #listaItens.enterprise-view-compact:not(.search-isolated) {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+    }
+
+    @media (max-width: 699px) {
+        body.search-compact-mode #mainHeader {
+            top: 8px !important;
+            width: calc(100% - 24px);
+        }
+
+        #listaItens.enterprise-view-grid:not(.search-isolated),
+        #listaItens.enterprise-view-compact:not(.search-isolated) {
+            grid-template-columns: minmax(0, 1fr) !important;
+        }
+
+        body.search-compact-mode #listaItens:not(.search-isolated) {
+            padding-top: 68px !important;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        #mainHeader,
+        #zoomControls,
+        #listaItens {
+            transition: none !important;
+        }
+    }
+</style>
+
+<script id="search-compact-three-cards-script-v40">
+    (() => {
+        'use strict';
+
+        const input = document.getElementById('inputPesquisa');
+        if (!input) return;
+
+        const alphabet = document.getElementById('filtros-letras');
+        let compactModeActive = false;
+
+        const syncCompactSearch = () => {
+            const shouldCompact = input.value.trim().length > 0;
+            document.body.classList.toggle('search-compact-mode', shouldCompact);
+
+            if (alphabet) {
+                alphabet.hidden = shouldCompact;
+                alphabet.setAttribute('aria-hidden', shouldCompact ? 'true' : 'false');
+                if (shouldCompact) {
+                    alphabet.style.setProperty('display', 'none', 'important');
+                } else {
+                    alphabet.style.removeProperty('display');
+                }
+            }
+
+            if (shouldCompact && !compactModeActive) {
+                window.scrollTo({ top: 0, behavior: 'auto' });
+            }
+
+            compactModeActive = shouldCompact;
+        };
+
+        input.addEventListener('input', syncCompactSearch);
+
+        window.sincronizarBuscaCompacta = syncCompactSearch;
+
+        // Sincroniza tambem as mudancas programaticas: limpar, alfabeto,
+        // trocar contexto, sair do foco e abrir um cadastro duplicado.
+        document.addEventListener('click', (event) => {
+            if (event.target.closest('#btnLimpar, #btn-desfiltrar-flutuante, #filtros-letras, #tab-veiculos, #tab-genericos')) {
+                requestAnimationFrame(syncCompactSearch);
+            }
+        });
+
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') requestAnimationFrame(syncCompactSearch);
+        });
+
+        window.addEventListener('wheel', (event) => {
+            if (!document.body.classList.contains('search-compact-mode')) return;
+            const header = document.getElementById('mainHeader');
+            if (!header) return;
+
+            if (event.deltaY > 0) {
+                header.classList.add('header-hidden');
+            } else if (event.deltaY < 0 && !document.body.classList.contains('search-focus-mode')) {
+                header.classList.remove('header-hidden');
+            }
+        }, { passive: true });
+
+        window.addEventListener('pageshow', syncCompactSearch);
+        syncCompactSearch();
     })();
 </script>
 </body>
