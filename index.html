@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manual de Cadastro v3.9.8 - Visual Profissional</title>
+    <title>Manual de Cadastro v3.9.9 - Visual Profissional</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Orbitron:wght@500;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
@@ -2030,6 +2030,33 @@
         let contextoEmEscuta = null;
         const itensPorPagina = 3;
 
+        const normalizeModeloDescricao = (source) => {
+            const parts = (Array.isArray(source?.parts) ? source.parts : [])
+                .map(value => String(value || '').replace(/\s+/g, ' ').trim().slice(0, 60))
+                .filter(Boolean)
+                .slice(0, 12);
+            return { parts: parts.length ? parts : ['NOME DA PEÇA'] };
+        };
+
+        window.obterModeloDescricaoItem = (id) => {
+            const item = id ? dadosOriginais.find(registro => registro.id === id) : null;
+            return normalizeModeloDescricao(item?.modeloDescricao);
+        };
+
+        window.salvarModeloDescricaoItem = async (id, source) => {
+            const modeloDescricao = normalizeModeloDescricao(source);
+            if (!id) return modeloDescricao;
+            await updateDoc(doc(db, "cadastros_veiculos", id), {
+                modeloDescricao,
+                atualizadoEm: serverTimestamp()
+            });
+            const index = dadosOriginais.findIndex(registro => registro.id === id);
+            if (index >= 0) {
+                dadosOriginais[index] = { ...dadosOriginais[index], modeloDescricao };
+            }
+            return modeloDescricao;
+        };
+
         let lastScrollTop = 0;
         const mainHeader = document.getElementById('mainHeader');
         const zoomControls = document.getElementById('zoomControls');
@@ -2124,6 +2151,11 @@
                     marca: p.marca,
                     codBarras: p.codBarras,
                     extrasConfig: payloadCfg,
+                    modeloDescricao: normalizeModeloDescricao(
+                        typeof window.obterModeloDescricaoAtual === 'function'
+                            ? window.obterModeloDescricaoAtual()
+                            : window.obterModeloDescricaoItem(p.id)
+                    ),
                     atualizadoEm: serverTimestamp()
                 };
 
@@ -2842,7 +2874,7 @@
             resetarPaginaERenderizar();
         };
 
-        window.editarItem = (id) => abrirModal(id);
+        window.editarItem = (id) => window.abrirModal(id);
         window.editarItemGenerico = (id) => abrirModalGenerico(id);
 
         const bar = document.getElementById('filtros-letras');
@@ -9986,10 +10018,10 @@
 </script>
 
 <!-- =====================================================================
-     CONSTRUTOR MANUAL DA ORDEM DA DESCRIÇÃO — v3.9.8
-     Uma informação por vez, sem exemplos automáticos.
+     CONSTRUTOR MANUAL DA ORDEM DA DESCRIÇÃO — v3.9.9
+     Uma informação por vez, com um modelo próprio para cada cadastro.
 ====================================================================== -->
-<style id="manual-description-order-v398">
+<style id="manual-description-order-v399">
     #modal .manual-order-card {
         display: grid;
         grid-template-columns: 42px minmax(0, 1fr) auto;
@@ -10447,6 +10479,12 @@
         transform: translateY(-1px);
     }
 
+    #modal-order-description .order-editor-action:disabled {
+        opacity: 0.6;
+        cursor: wait;
+        transform: none;
+    }
+
     @media (max-width: 720px) {
         #modal .manual-order-card {
             grid-template-columns: 38px minmax(0, 1fr);
@@ -10478,12 +10516,8 @@
     }
 </style>
 
-<script id="manual-description-order-v398-script">
+<script id="manual-description-order-v399-script">
     (() => {
-        const STORAGE_KEY = 'motormax.description-order.v3';
-        const PREVIOUS_KEY = 'motormax.description-template.v2';
-        const LEGACY_KEY = 'motormax.description-template.v1';
-        const LEGACY_DEFAULT = 'NOME DA PEÇA + POSIÇÃO + TIPO / CARACTERÍSTICA + MEDIDAS + MARCA + CÓDIGO UNIVERSAL';
         const MAX_PARTS = 12;
         const DEFAULT_PARTS = ['NOME DA PEÇA'];
 
@@ -10508,39 +10542,12 @@
             .filter(Boolean)
             .slice(0, MAX_PARTS);
 
-        const loadModel = () => {
-            try {
-                const current = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || 'null');
-                const currentParts = normalizeParts(current?.parts);
-                if (currentParts.length) return { parts: currentParts };
-
-                const previous = JSON.parse(window.localStorage.getItem(PREVIOUS_KEY) || 'null');
-                const previousStructure = String(previous?.structure || '')
-                    .replace(/\s+/g, ' ')
-                    .trim()
-                    .slice(0, 360);
-                if (previousStructure && previousStructure !== LEGACY_DEFAULT) {
-                    const migrated = normalizeParts(previousStructure.split(/\s*\+\s*/));
-                    if (migrated.length) return { parts: migrated };
-                }
-
-                const legacy = JSON.parse(window.localStorage.getItem(LEGACY_KEY) || 'null');
-                if (Array.isArray(legacy)) {
-                    const migrated = normalizeParts(legacy.map(item => item?.label));
-                    if (migrated.length && migrated.join(' + ') !== LEGACY_DEFAULT) return { parts: migrated };
-                }
-            } catch (error) {
-                /* Mantém o modelo inicial quando o armazenamento não estiver disponível. */
-            }
-            return { parts: [...DEFAULT_PARTS] };
-        };
-
-        const saveModel = model => {
-            try {
-                window.localStorage.setItem(STORAGE_KEY, JSON.stringify(model));
-            } catch (error) {
-                /* A edição continua válida durante a sessão. */
-            }
+        const loadModel = itemId => {
+            const stored = typeof window.obterModeloDescricaoItem === 'function'
+                ? window.obterModeloDescricaoItem(itemId)
+                : null;
+            const parts = normalizeParts(stored?.parts);
+            return { parts: parts.length ? parts : [...DEFAULT_PARTS] };
         };
 
         const setupTeamMessageCounter = () => {
@@ -10555,17 +10562,19 @@
 
         const init = () => {
             setupTeamMessageCounter();
-            if (window.__manualDescriptionOrder398Ready) return true;
+            if (window.__manualDescriptionOrder399Ready) return true;
 
             const descriptionBlock = document.querySelector('#modal .pro-description-block');
             const descriptionsContainer = document.getElementById('container-descricoes');
             if (!descriptionBlock || !descriptionsContainer || typeof window.adicionarCampoDescricao !== 'function') return false;
 
-            window.__manualDescriptionOrder398Ready = true;
-            let model = loadModel();
+            window.__manualDescriptionOrder399Ready = true;
+            let activeItemId = document.getElementById('form-id')?.value || '';
+            let model = loadModel(activeItemId);
             let draftParts = [];
             let lastFocused = null;
             let statusTimer = 0;
+            let savingModel = false;
 
             const card = document.createElement('section');
             card.className = 'manual-order-card';
@@ -10573,7 +10582,7 @@
             card.innerHTML =
                 '<span class="manual-order-icon">' + icons.order + '</span>' +
                 '<div class="manual-order-copy">' +
-                    '<div class="manual-order-heading"><div><span class="manual-order-kicker">Modelo da descrição</span><strong class="manual-order-title">Ordem que será usada</strong></div></div>' +
+                    '<div class="manual-order-heading"><div><span class="manual-order-kicker">Modelo deste cadastro</span><strong class="manual-order-title">Ordem que será usada</strong></div></div>' +
                     '<div class="manual-order-sequence" data-order-sequence></div>' +
                 '</div>' +
                 '<div class="manual-order-actions">' +
@@ -10612,6 +10621,7 @@
             const status = card.querySelector('[data-order-status]');
             const list = overlay.querySelector('[data-order-list]');
             const addButton = overlay.querySelector('[data-order-add]');
+            const saveButton = overlay.querySelector('[data-order-save]');
             const limit = overlay.querySelector('[data-order-limit]');
             const error = overlay.querySelector('[data-order-error]');
 
@@ -10763,18 +10773,39 @@
                 if (lastFocused && typeof lastFocused.focus === 'function') lastFocused.focus({ preventScroll: true });
             };
 
-            const commitEditor = () => {
+            const commitEditor = async () => {
+                if (savingModel) return;
                 const parts = normalizeParts(draftParts);
                 if (!parts.length) {
                     error.textContent = 'Digite pelo menos uma informação para salvar a ordem.';
                     focusRow(0);
                     return;
                 }
-                model = { parts };
-                saveModel(model);
+
+                const nextModel = { parts };
+                if (activeItemId && typeof window.salvarModeloDescricaoItem === 'function') {
+                    savingModel = true;
+                    saveButton.disabled = true;
+                    saveButton.setAttribute('aria-busy', 'true');
+                    error.textContent = '';
+                    try {
+                        await window.salvarModeloDescricaoItem(activeItemId, nextModel);
+                    } catch (saveError) {
+                        error.textContent = 'Não foi possível salvar esta ordem. Tente novamente.';
+                        return;
+                    } finally {
+                        savingModel = false;
+                        saveButton.disabled = false;
+                        saveButton.removeAttribute('aria-busy');
+                    }
+                }
+
+                model = nextModel;
                 renderCard();
                 closeEditor();
-                showStatus('Ordem atualizada.');
+                showStatus(activeItemId
+                    ? 'Ordem salva somente neste cadastro.'
+                    : 'Ordem definida para este novo cadastro.');
             };
 
             const useOrder = () => {
@@ -10837,8 +10868,19 @@
                 }
             }, true);
 
+            const currentOpenModal = window.abrirModal;
+            if (typeof currentOpenModal === 'function') {
+                window.abrirModal = (...args) => {
+                    currentOpenModal(...args);
+                    activeItemId = args[0] || '';
+                    model = loadModel(activeItemId);
+                    draftParts = [];
+                    renderCard();
+                };
+            }
+
+            window.obterModeloDescricaoAtual = () => ({ parts: [...model.parts] });
             renderCard();
-            saveModel(model);
             window.editarModeloDescricao = () => openEditor(card.querySelector('[data-order-edit]'));
             return true;
         };
