@@ -2634,10 +2634,20 @@
             if (focusExitLabel) focusExitLabel.textContent = focoManualAtivo ? 'Voltar aos resultados · Esc' : 'Voltar à busca · Esc';
 
             document.getElementById('contador-total').innerText = todosFiltrados.length;
-            const totalPaginas = Math.ceil(todosFiltrados.length / itensPorPagina) || 1;
-            const filtrados = todosFiltrados.slice((paginaAtual-1)*itensPorPagina, paginaAtual*itensPorPagina);
+            // Durante a pesquisa exibe todos os resultados relevantes em uma
+            // lista resumida. Ao focar um item, volta ao card completo normal.
+            const exibindoListaDeResultados = buscaValida && !buscaIsolada;
+            const totalPaginas = exibindoListaDeResultados
+                ? 1
+                : Math.ceil(todosFiltrados.length / itensPorPagina) || 1;
+            const filtrados = exibindoListaDeResultados
+                ? todosFiltrados
+                : todosFiltrados.slice((paginaAtual-1)*itensPorPagina, paginaAtual*itensPorPagina);
 
-            document.getElementById('controlesPaginacao').classList.toggle('hidden', todosFiltrados.length <= itensPorPagina);
+            document.getElementById('controlesPaginacao').classList.toggle(
+                'hidden',
+                exibindoListaDeResultados || todosFiltrados.length <= itensPorPagina
+            );
             document.getElementById('numPagina').innerText = paginaAtual;
             document.getElementById('totalPaginas').innerText = totalPaginas;
             document.getElementById('btnAnterior').disabled = paginaAtual === 1;
@@ -11218,6 +11228,96 @@
     body.search-compact-mode #listaItens:not(.search-isolated) {
         margin-top: 0 !important;
         padding-top: 76px !important;
+    }
+
+    /* Resultados durante a digitacao: lista media, limpa e de leitura rapida. */
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        width: min(920px, calc(100% - 40px)) !important;
+        max-width: 920px !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+        gap: 12px !important;
+        zoom: 1 !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .manual2-card.enterprise-card {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 0 !important;
+        height: auto !important;
+        padding: 14px 16px !important;
+        gap: 8px !important;
+        resize: none !important;
+        overflow: hidden !important;
+        border-radius: 17px !important;
+        cursor: pointer;
+        transform: none !important;
+        box-shadow:
+            0 16px 34px -27px rgba(0, 0, 0, 0.98),
+            0 8px 24px -24px rgba(34, 211, 238, 0.72),
+            inset 0 1px 0 rgba(255, 255, 255, 0.04) !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .manual2-card.enterprise-card:hover {
+        border-color: rgba(34, 211, 238, 0.62) !important;
+        background:
+            radial-gradient(460px circle at 0 0, rgba(34, 211, 238, 0.12), transparent 62%),
+            linear-gradient(145deg, rgba(12, 27, 53, 0.98), rgba(6, 14, 31, 0.99)) !important;
+        box-shadow:
+            0 20px 42px -28px rgba(0, 0, 0, 0.98),
+            0 12px 30px -22px rgba(34, 211, 238, 0.78),
+            inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .enterprise-card-header {
+        min-height: 54px !important;
+        padding: 0 2px 8px 15px !important;
+        border-bottom-color: rgba(96, 165, 250, 0.16) !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .enterprise-card-header::before {
+        top: 2px !important;
+        bottom: 9px !important;
+        width: 4px !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .enterprise-card-eyebrow {
+        font-size: 0.50rem !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .enterprise-card-header .manual2-title {
+        font-size: clamp(0.98rem, 1.8vw, 1.22rem) !important;
+        line-height: 1.2 !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .team-update-note,
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .extra-info-grid,
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .desc-container,
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .box-sub,
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .card-actions,
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .copy-feedback {
+        display: none !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .search-focus-hint {
+        min-height: 34px !important;
+        margin: 0 !important;
+        padding: 8px 12px !important;
+        border-radius: 10px !important;
+        font-size: 0.52rem !important;
+        letter-spacing: 0.055em !important;
+    }
+
+    body.search-compact-mode:not(.search-focus-mode) #listaItens:not(.search-isolated) .generic-row {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 72px;
+        padding: 14px 16px !important;
+        border-radius: 16px !important;
     }
 
     /* Tres posicoes fixas: dois resultados nao se alargam para ocupar metade da tela. */
