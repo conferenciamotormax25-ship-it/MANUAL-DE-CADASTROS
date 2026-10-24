@@ -2155,6 +2155,7 @@
                 const payload = {
                     veiculo: p.v,
                     descricao: p.d,
+                    descricaoRotulos: p.descricaoRotulos,
                     obs: p.o,
                     codOriginal: p.codOriginal,
                     codGenerico: p.codGenerico,
@@ -2708,7 +2709,7 @@
                         <div class="desc-container">
                             ${descs.map((d, index) => `
                                 <div class="box-main" onclick="window.copiarLinha('${item.id}', ${index})">
-                                    <span>${d}</span>
+                                    <span class="description-content"><small class="description-role">${escaparHtml(item.descricaoRotulos?.[index] ?? (['Descrição pré-fixa', 'Aplicação / modelo', 'Marca e código da peça'][index] || 'Descrição adicional'))}</small><span class="description-value">${escaparHtml(d)}</span></span>
                                 </div>
                             `).join('')}
                         </div>
@@ -2836,7 +2837,7 @@
 
             const container = document.getElementById('container-descricoes');
             container.innerHTML = "";
-            if(item.descricao) item.descricao.split('\n').forEach(d => adicionarCampoDescricao(d));
+            if(item.descricao) item.descricao.split('\n').forEach((d, index) => adicionarCampoDescricao(d, item.descricaoRotulos?.[index]));
             else adicionarCampoDescricao();
 
             document.getElementById('modal').style.display = 'flex';
@@ -2894,7 +2895,11 @@
             // prepara payload pendente para depois do modal-config-card
             _pendingSave = {
                 id: id ? id : null,
-                v, d, o, codOriginal, codGenerico, aplicacao, marca, codBarras
+                v, d, o, codOriginal, codGenerico, aplicacao, marca, codBarras,
+                descricaoRotulos: Array.from(inputs).filter(i => i.value.trim()).flatMap(i => {
+                    const label = i.closest('.pro-description-item')?.querySelector('.description-role-input')?.value.trim() || '';
+                    return i.value.trim().split('\n').filter(line => line.trim()).map(() => label);
+                })
             };
 
             // pré-preenche modal-config-card com o que já existe (se editar) ou fallback (se criar)
@@ -3204,7 +3209,7 @@
                 if (counter) counter.textContent = `${textarea.value.length} caracteres`;
             };
 
-            const createProfessionalDescription = (value = '') => {
+            const createProfessionalDescription = (value = '', role) => {
                 const container = document.getElementById('container-descricoes');
                 if (!container) return;
 
@@ -3275,7 +3280,20 @@
                 textarea.addEventListener('blur', () => row.classList.remove('is-editing'));
                 textarea.addEventListener('input', () => updateDescriptionCounter(textarea));
 
-                row.append(header, textarea, footer);
+                const roleField = document.createElement('label');
+                roleField.className = 'description-role-field';
+                const roleCaption = document.createElement('span');
+                roleCaption.textContent = 'O que é esta informação?';
+                const roleInput = document.createElement('input');
+                roleInput.className = 'description-role-input';
+                roleInput.type = 'text';
+                roleInput.maxLength = 100;
+                roleInput.placeholder = 'Ex.: Descrição pré-fixa, Aplicação / modelo, Marca e código da peça';
+                roleInput.value = role === undefined
+                    ? (['Descrição pré-fixa', 'Aplicação / modelo', 'Marca e código da peça'][container.children.length] || '')
+                    : String(role);
+                roleField.append(roleCaption, roleInput);
+                row.append(header, roleField, textarea, footer);
                 container.appendChild(row);
                 renumberDescriptions();
                 updateDescriptionCounter(textarea);
@@ -5331,7 +5349,7 @@
                     value: chip.querySelector('.info-chip-value')?.textContent.trim() || ''
                 })).filter((field) => field.value);
                 const descriptions = Array.from(card.querySelectorAll('.desc-container .box-main')).map((description) => {
-                    const value = description.querySelector('span')?.textContent || description.textContent;
+                    const value = description.querySelector('.description-value')?.textContent || description.querySelector('span')?.textContent || description.textContent;
                     return value.trim();
                 }).filter(Boolean);
                 const observation = card.querySelector('.enterprise-observation-text')?.textContent.trim()
@@ -6552,8 +6570,8 @@
                     const hasVariations = descriptions.length > 1;
                     const header = makeHeader(
                         'description',
-                        hasVariations ? 'Variações do item' : 'Descrição do item',
-                        hasVariations ? `${descriptions.length} opções cadastradas` : text.descriptionsSubtitle,
+                        hasVariations ? 'Descrições do item' : 'Descrição do item',
+                        hasVariations ? `${descriptions.length} informações cadastradas` : text.descriptionsSubtitle,
                         descriptions.length,
                         'enterprise-content-section-header'
                     );
@@ -6572,63 +6590,9 @@
                     badge.textContent = String(index + 1).padStart(2, '0');
                 });
 
-                if (descriptions.length <= 1 || container.dataset.enterpriseVariationsReady === 'true') return;
 
-                container.dataset.enterpriseVariationsReady = 'true';
-                container.classList.add('has-variations', 'variations-collapsed');
+                // Todas as descrições ficam abertas, sem botão de recolher.
 
-                const secondaryDescriptions = descriptions.slice(1);
-                secondaryDescriptions.forEach((description) => {
-                    description.classList.add('enterprise-variation-secondary');
-                    description.hidden = true;
-                    description.setAttribute('aria-hidden', 'true');
-                });
-
-                const toggle = document.createElement('button');
-                toggle.type = 'button';
-                toggle.className = 'enterprise-variation-toggle';
-                toggle.setAttribute('aria-expanded', 'false');
-                toggle.title = 'Mostrar todas as variações deste cadastro';
-                toggle.innerHTML = `
-                    <span class="enterprise-variation-toggle-icon">${icons.variations}</span>
-                    <span class="enterprise-variation-toggle-copy">
-                        <span class="enterprise-variation-toggle-kicker">Variações do item</span>
-                        <strong class="enterprise-variation-toggle-label"></strong>
-                    </span>
-                    <span class="enterprise-variation-toggle-end">
-                        <span class="enterprise-variation-toggle-count">+${secondaryDescriptions.length}</span>
-                        <span class="enterprise-variation-toggle-chevron" aria-hidden="true">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-                        </span>
-                    </span>
-                `;
-
-                const label = toggle.querySelector('.enterprise-variation-toggle-label');
-                const count = toggle.querySelector('.enterprise-variation-toggle-count');
-                const updateToggle = (expanded) => {
-                    toggle.setAttribute('aria-expanded', String(expanded));
-                    toggle.title = expanded ? 'Recolher variações deste cadastro' : 'Mostrar todas as variações deste cadastro';
-                    label.textContent = expanded
-                        ? 'Ocultar variações'
-                        : `Ver ${secondaryDescriptions.length} ${secondaryDescriptions.length === 1 ? 'outra variação' : 'outras variações'}`;
-                    count.textContent = expanded ? String(descriptions.length).padStart(2, '0') : `+${secondaryDescriptions.length}`;
-                };
-
-                toggle.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    const expanded = toggle.getAttribute('aria-expanded') !== 'true';
-                    container.classList.toggle('variations-expanded', expanded);
-                    container.classList.toggle('variations-collapsed', !expanded);
-                    secondaryDescriptions.forEach((description) => {
-                        description.hidden = !expanded;
-                        description.setAttribute('aria-hidden', String(!expanded));
-                    });
-                    updateToggle(expanded);
-                });
-
-                updateToggle(false);
-                container.appendChild(toggle);
             };
 
             const organizeObservation = (card) => {
@@ -7854,7 +7818,7 @@
             let activeStage = 'piece';
 
             const getDescriptionCount = () =>
-                Array.from(descriptionsContainer.querySelectorAll('textarea, input'))
+                Array.from(descriptionsContainer.querySelectorAll('.input-desc-item'))
                     .filter(field => field.value.trim()).length;
 
             const getCodeCount = () => {
@@ -11424,5 +11388,19 @@
         syncCompactSearch();
     })();
 </script>
+
+<style id="description-roles-always-visible">
+#modal .description-role-field { display: grid; gap: 6px; margin: 12px 0; color: #94a3b8; font-size: 12px; font-weight: 600; }
+#modal .description-role-input { width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid #334155; border-radius: 9px; background: #0b172b; color: #cbd5e1; font: inherit; }
+#modal .description-role-input:focus { outline: 2px solid #2dd4bf; outline-offset: 2px; }
+#listaItens .manual2-card .desc-container { display: flex !important; flex-direction: column; max-height: none !important; overflow: visible !important; }
+#listaItens .manual2-card { height: auto !important; max-height: none !important; }
+#listaItens .desc-container .box-main { display: grid !important; height: auto !important; max-height: none !important; overflow: visible !important; }
+#listaItens .desc-container .description-content { display: flex; flex-direction: column; gap: 5px; min-width: 0; white-space: normal !important; overflow: visible !important; -webkit-line-clamp: unset !important; }
+#listaItens .description-role { display: block; color: #8ba9ad; font-family: sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .045em; line-height: 1.4; text-transform: uppercase; }
+#listaItens .description-role:empty { display: none; }
+#listaItens .description-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
 </body>
 </html>
