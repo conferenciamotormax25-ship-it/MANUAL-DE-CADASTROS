@@ -2679,7 +2679,7 @@
                     return `
                     <div id="card-${item.id}" onclick="window.focarCardBusca(event, '${item.id}')" class="manual2-card card-anim ${item.id === idSalvoRecentemente ? 'card-saved' : ''} ${item.id === melhorResultadoId ? 'search-primary-card' : ''} ${modoSelecaoBusca ? 'search-selectable-card' : ''}">
                         <div id="copy-overlay-${item.id}" class="copy-feedback" role="status" aria-live="polite">✓ Copiado</div>
-                        <div class="manual2-title">${item.veiculo}</div>
+                        <div class="manual2-title quick-editable-field"><span class="quick-field-content">${escaparHtml(item.veiculo)}</span><button type="button" class="quick-description-edit" onkeydown="event.stopPropagation()" aria-label="Editar nome da peça" title="Editar nome da peça" onclick="window.editarDescricaoRapida(event, '${item.id}', 0, 'veiculo')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5-12 12H4v-5z"/><path d="m14 5 5 5"/></svg></button></div>
                         ${modoSelecaoBusca ? `<div class="search-focus-hint"><span class="search-focus-hint-icon">⌖</span><span>Clique neste card para abrir em foco total</span></div>` : ''}
 
                         ${mensagemPendente ? `
@@ -2699,22 +2699,23 @@
 
                         ${anyExtras ? `
                         <div class="extra-info-grid">
-                            ${showCodOriginal ? `<div class="info-chip info-chip-original" onclick="window.copiarCampo('${item.id}', 'codOriginal')"><span class="info-chip-label">Cód Original</span><span class="info-chip-value">${item.codOriginal}</span></div>` : ''}
-                            ${showCodGenerico ? `<div class="info-chip info-chip-generico" onclick="window.copiarCampo('${item.id}', 'codGenerico')"><span class="info-chip-label">Cód Genérico</span><span class="info-chip-value">${item.codGenerico}</span></div>` : ''}
-                            ${showAplicacao ? `<div class="info-chip info-chip-aplicacao" onclick="window.copiarCampo('${item.id}', 'aplicacao')"><span class="info-chip-label">Aplicação</span><span class="info-chip-value">${item.aplicacao}</span></div>` : ''}
-                            ${showMarca ? `<div class="info-chip info-chip-marca" onclick="window.copiarCampo('${item.id}', 'marca')"><span class="info-chip-label">Marca</span><span class="info-chip-value">${item.marca}</span></div>` : ''}
-                            ${showCodBarras ? `<div class="info-chip info-chip-barras info-chip-full" onclick="window.copiarCampo('${item.id}', 'codBarras')"><span class="info-chip-label">Cód de Barras</span><span class="info-chip-value">${item.codBarras}</span></div>` : ''}
+                            ${showCodOriginal ? `<div class="info-chip info-chip-original" onclick="window.copiarCampo('${item.id}', 'codOriginal', event)"><span class="info-chip-label">Cód Original</span><span class="info-chip-value">${item.codOriginal}</span></div>` : ''}
+                            ${showCodGenerico ? `<div class="info-chip info-chip-generico" onclick="window.copiarCampo('${item.id}', 'codGenerico', event)"><span class="info-chip-label">Cód Genérico</span><span class="info-chip-value">${item.codGenerico}</span></div>` : ''}
+                            ${showAplicacao ? `<div class="info-chip info-chip-aplicacao" onclick="window.copiarCampo('${item.id}', 'aplicacao', event)"><span class="info-chip-label">Aplicação</span><span class="info-chip-value">${item.aplicacao}</span></div>` : ''}
+                            ${showMarca ? `<div class="info-chip info-chip-marca" onclick="window.copiarCampo('${item.id}', 'marca', event)"><span class="info-chip-label">Marca</span><span class="info-chip-value">${item.marca}</span></div>` : ''}
+                            ${showCodBarras ? `<div class="info-chip info-chip-barras info-chip-full" onclick="window.copiarCampo('${item.id}', 'codBarras', event)"><span class="info-chip-label">Cód de Barras</span><span class="info-chip-value">${item.codBarras}</span></div>` : ''}
                         </div>` : ''}
 
                         <div class="desc-container">
                             ${descs.map((d, index) => `
-                                <div class="box-main" onclick="window.copiarLinha('${item.id}', ${index})">
+                                <div class="box-main" onclick="window.copiarLinha('${item.id}', ${index}, event)">
+                                    <button type="button" class="quick-description-edit" onkeydown="event.stopPropagation()" aria-label="Editar esta informação" title="Editar esta informação" onclick="window.editarDescricaoRapida(event, '${item.id}', ${index})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5-12 12H4v-5z"/><path d="m14 5 5 5"/></svg></button>
                                     <span class="description-content"><small class="description-role">${escaparHtml(item.descricaoRotulos?.[index] ?? (['Descrição pré-fixa', 'Aplicação / modelo', 'Marca e código da peça'][index] || 'Descrição adicional'))}</small><span class="description-value">${escaparHtml(d)}</span></span>
                                 </div>
                             `).join('')}
                         </div>
 
-                        ${showObs ? `<div class="box-sub">${item.obs}</div>` : ''}
+                        ${showObs ? `<div class="box-sub quick-editable-field"><span class="enterprise-observation-label">Observação</span><span class="enterprise-observation-text quick-field-content">${escaparHtml(item.obs)}</span><button type="button" class="quick-description-edit" onkeydown="event.stopPropagation()" aria-label="Editar observação" title="Editar observação" onclick="window.editarDescricaoRapida(event, '${item.id}', 0, 'obs')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5-12 12H4v-5z"/><path d="m14 5 5 5"/></svg></button></div>` : ''}
 
                         <div class="card-actions">
                             <button onclick="window.editarItem('${item.id}')" class="action-btn btn-edit-main">Editar</button>
@@ -2977,23 +2978,169 @@
             fecharModalDelete();
         });
 
-        window.copiarLinha = (id, index) => {
-            const item = dadosOriginais.find(d => d.id === id);
-            const linhas = (item.descricao || "").split('\n').filter(d => d.trim() !== "");
-            const textoParaCopiar = linhas[index];
-            navigator.clipboard.writeText(textoParaCopiar).then(() => {
-                const ov = document.getElementById(`copy-overlay-${id}`);
-                ov.style.opacity = '1'; setTimeout(() => ov.style.opacity = '0', 800);
+        window.editarDescricaoRapida = (event, id, index, campo = null) => {
+            if (campo && !['veiculo', 'obs'].includes(campo)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            const row = event.currentTarget.closest(campo ? '.quick-editable-field' : '.box-main');
+            if (!row || row.querySelector('.quick-description-form')) return;
+            const item = dadosOriginais.find(item => item.id === id);
+            if (!item) return;
+            const lines = String(item.descricao || '').split('\n').filter(line => line.trim());
+            const original = campo ? String(item[campo] || '') : lines[index];
+            const labels = ['Descrição pré-fixa', 'Aplicação / modelo', 'Marca e código da peça'];
+            const originalLabel = campo ? (campo === 'veiculo' ? 'Nome da peça' : 'Observação') : (item.descricaoRotulos?.[index] ?? labels[index] ?? 'Descrição adicional');
+            const content = row.querySelector(campo ? '.quick-field-content' : '.description-content');
+            const editButton = row.querySelector('.quick-description-edit');
+            const oldRole = row.getAttribute('role');
+            row.setAttribute('role', 'group');
+            row.removeAttribute('tabindex');
+            row.classList.add('is-quick-editing');
+            content.hidden = true;
+            editButton.hidden = true;
+            const form = document.createElement('form');
+            form.className = 'quick-description-form';
+            form.setAttribute('aria-label', 'Edição rápida da informação');
+            form.innerHTML = '<label class="quick-field">Identificação<input name="label" maxlength="100" autocomplete="off"></label>' +
+                '<label class="quick-field">Texto<textarea name="text" rows="3" required></textarea></label>' +
+                '<div class="quick-description-error" role="alert" hidden></div>' +
+                '<div class="quick-description-actions"><span class="quick-description-hint">Ctrl + Enter para salvar</span><button type="button" class="quick-cancel">Cancelar</button><button type="submit" class="quick-save">Salvar</button></div>';
+            const labelInput = form.elements.namedItem('label');
+            const textInput = form.elements.namedItem('text');
+            const error = form.querySelector('.quick-description-error');
+            labelInput.value = originalLabel;
+            if (campo) { labelInput.parentElement.hidden = true; form.setAttribute('aria-label', 'Editar ' + originalLabel); }
+            if (campo === 'obs') textInput.required = false;
+            textInput.value = original;
+            let saving = false;
+            const close = () => {
+                if (saving) return;
+                form.remove();
+                content.hidden = false;
+                editButton.hidden = false;
+                row.classList.remove('is-quick-editing');
+                if (oldRole) row.setAttribute('role', oldRole); else row.removeAttribute('role');
+                row.setAttribute('tabindex', '0');
+                editButton.focus({ preventScroll: true });
+            };
+            form.addEventListener('click', event => event.stopPropagation());
+            form.addEventListener('keydown', event => {
+                event.stopPropagation();
+                if (event.key === 'Escape') { event.preventDefault(); close(); }
+                if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                    event.preventDefault(); form.requestSubmit();
+                }
             });
+            form.querySelector('.quick-cancel').addEventListener('click', close);
+            form.addEventListener('submit', async event => {
+                event.preventDefault();
+                if (saving) return;
+                // Uma informação corresponde a uma linha, como na edição completa.
+                const value = textInput.value.replace(/\s+/g, ' ').trim().toUpperCase();
+                const label = labelInput.value.trim();
+                error.hidden = true;
+                if (!value && campo !== 'obs') {
+                    error.textContent = '🔴 Digite o texto antes de salvar.';
+                    error.hidden = false; textInput.focus(); return;
+                }
+                saving = true;
+                form.setAttribute('aria-busy', 'true');
+                form.querySelectorAll('button, input, textarea').forEach(control => control.disabled = true);
+                form.querySelector('.quick-save').textContent = 'Salvando…';
+                try {
+                    const ref = doc(db, 'cadastros_veiculos', id);
+                    const saved = await runTransaction(db, async transaction => {
+                        const snapshot = await transaction.get(ref);
+                        if (!snapshot.exists()) throw new Error('Este cadastro não existe mais. Atualize a página.');
+                        const current = snapshot.data();
+                        if (campo) {
+                            if (String(current[campo] || '') !== original) throw new Error('Esta informação foi alterada por outra pessoa. Cancele e abra novamente.');
+                            if (campo === 'veiculo' && localizarDuplicadoVeiculo(value, current.descricao, id)) throw new Error('Já existe outro cadastro com este nome e descrição.');
+                            const payload = { [campo]: value, atualizadoEm: serverTimestamp() };
+                            transaction.update(ref, payload);
+                            return payload;
+                        }
+
+                        const currentLines = String(current.descricao || '').split('\n').filter(line => line.trim());
+                        const currentLabel = current.descricaoRotulos?.[index] ?? labels[index] ?? 'Descrição adicional';
+                        if (currentLines.length !== lines.length || currentLines[index] !== original || currentLabel !== originalLabel) {
+                            throw new Error('Esta informação foi alterada por outra pessoa. Cancele e abra novamente para ver a versão atual.');
+                        }
+                        currentLines[index] = value;
+                        const descricao = currentLines.join('\n');
+                        const duplicate = localizarDuplicadoVeiculo(current.veiculo, descricao, id);
+                        if (duplicate) throw new Error('Já existe outro cadastro com esta descrição. Revise o texto.');
+                        const descricaoRotulos = currentLines.map((_, i) => current.descricaoRotulos?.[i] ?? labels[i] ?? 'Descrição adicional');
+                        descricaoRotulos[index] = label;
+                        const payload = { descricao, descricaoRotulos, atualizadoEm: serverTimestamp() };
+                        transaction.update(ref, payload);
+                        return payload;
+                    });
+                    const currentIndex = dadosOriginais.findIndex(item => item.id === id);
+                    if (currentIndex >= 0) dadosOriginais[currentIndex] = { ...dadosOriginais[currentIndex], ...saved };
+                    renderizar();
+                    let toast = document.getElementById('quick-edit-success');
+                    if (!toast) {
+                        toast = document.createElement('div'); toast.id = 'quick-edit-success';
+                        toast.setAttribute('role', 'status'); document.body.append(toast);
+                    }
+                    toast.textContent = '✓ Informação salva'; toast.hidden = false;
+                    clearTimeout(window.__quickEditToastTimer);
+                    window.__quickEditToastTimer = setTimeout(() => toast.hidden = true, 2600);
+                } catch (failure) {
+                    error.textContent = '🔴 ' + (failure.message || 'Não foi possível salvar. Tente novamente.');
+                    error.hidden = false;
+                } finally {
+                    saving = false;
+                    form.removeAttribute('aria-busy');
+                    form.querySelectorAll('button, input, textarea').forEach(control => control.disabled = false);
+                    form.querySelector('.quick-save').textContent = 'Salvar';
+                }
+            });
+            row.append(form);
+            textInput.focus({ preventScroll: true });
+            textInput.setSelectionRange(textInput.value.length, textInput.value.length);
         };
 
-        window.copiarCampo = (id, campo) => {
+        window.copiarComFeedback = async (text, target) => {
+            if (!text || !target) return;
+            const show = (message, failed = false) => {
+                target.querySelector(':scope > .subtle-copy-notice')?.remove();
+                clearTimeout(target.__copyNoticeTimer);
+                const notice = document.createElement('span');
+                notice.className = 'subtle-copy-notice' + (failed ? ' is-error' : '');
+                notice.setAttribute('role', failed ? 'alert' : 'status');
+                notice.textContent = message;
+                target.append(notice);
+                target.__copyNoticeTimer = setTimeout(() => notice.remove(), failed ? 3500 : 1700);
+            };
+            try {
+                if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(String(text));
+                else {
+                    const input = document.createElement('textarea');
+                    input.value = String(text); input.style.cssText = 'position:fixed;left:-9999px;top:0';
+                    document.body.append(input); input.select();
+                    let copied = false;
+                    try { copied = document.execCommand('copy'); } finally { input.remove(); }
+                    if (!copied) throw new Error('copy failed');
+                }
+                show('✓ Copiado');
+            } catch (_) { show('Não foi possível copiar', true); }
+        };
+
+        window.copiarLinha = (id, index, event) => {
+            const item = dadosOriginais.find(d => d.id === id);
+            if (!item) return;
+            const lines = (item.descricao || '').split('\n').filter(d => d.trim());
+            const target = event?.currentTarget || document.getElementById('card-' + id)?.querySelectorAll('.desc-container .box-main')[index];
+            return window.copiarComFeedback(lines[index], target);
+        };
+
+        window.copiarCampo = (id, campo, event) => {
             const item = dadosOriginais.find(d => d.id === id);
             if (!item || !item[campo]) return;
-            navigator.clipboard.writeText(item[campo]).then(() => {
-                const ov = document.getElementById(`copy-overlay-${id}`);
-                ov.style.opacity = '1'; setTimeout(() => ov.style.opacity = '0', 800);
-            });
+            const target = event?.currentTarget || document.getElementById('card-' + id);
+            return window.copiarComFeedback(item[campo], target);
         };
 
         window.marcarMensagemLida = async (id, event) => {
@@ -3210,6 +3357,7 @@
             };
 
             const createProfessionalDescription = (value = '', role) => {
+                const focusNewDescription = document.getElementById('modal').style.display === 'flex';
                 const container = document.getElementById('container-descricoes');
                 if (!container) return;
 
@@ -3301,9 +3449,11 @@
                 requestAnimationFrame(() => {
                     const ideal = Math.min(Math.max(textarea.scrollHeight, 82), 220);
                     textarea.style.height = `${ideal}px`;
-                    textarea.focus();
-                    textarea.setSelectionRange(textarea.value.length, textarea.value.length);
-                    row.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    if (focusNewDescription) {
+                        textarea.focus({ preventScroll: true });
+                        textarea.setSelectionRange(textarea.value.length, textarea.value.length);
+                        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 });
             };
 
@@ -11400,6 +11550,262 @@
 #listaItens .description-role { display: block; color: #8ba9ad; font-family: sans-serif; font-size: 10px; font-weight: 600; letter-spacing: .045em; line-height: 1.4; text-transform: uppercase; }
 #listaItens .description-role:empty { display: none; }
 #listaItens .description-value { white-space: pre-wrap; overflow-wrap: anywhere; }
+</style>
+
+
+<style id="professional-description-colors-and-dock">
+[data-description-kind="description"] { --role-rgb: 96,165,250; --role-ink: #dbeafe; --role-fill: #174497; --role-fill-end: #12356e; }
+[data-description-kind="application"] { --role-rgb: 52,211,153; --role-ink: #d1fae5; --role-fill: #076344; --role-fill-end: #064b37; }
+[data-description-kind="brand"] { --role-rgb: 192,132,252; --role-ink: #f3e8ff; --role-fill: #652ba1; --role-fill-end: #48217a; }
+[data-description-kind="other"] { --role-rgb: 148,163,184; --role-ink: #e2e8f0; --role-fill: #334155; --role-fill-end: #263449; }
+#listaItens .desc-container .box-main[data-description-kind],
+#modal .pro-description-item[data-description-kind] {
+ border: 1px solid rgba(var(--role-rgb), .85) !important;
+ border-left: 4px solid rgb(var(--role-rgb)) !important;
+ background: linear-gradient(110deg, var(--role-fill), var(--role-fill-end)) !important;
+ box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 5px 16px rgba(0,0,0,.18) !important;
+}
+#listaItens .box-main .description-role { color: var(--role-ink); font-size: 10px; letter-spacing: .07em; }
+#listaItens .box-main .enterprise-card-description-index { color: var(--role-ink); border-color: rgba(var(--role-rgb), .4); background: rgba(var(--role-rgb), .14); }
+#modal .pro-description-item { padding: 18px; border-radius: 15px; }
+#modal .pro-description-index { color: var(--role-ink); }
+#modal .pro-description-index::before { background: rgb(var(--role-rgb)); box-shadow: none; }
+#modal .description-role-field { margin: 10px 0 14px; font-size: 11px; }
+#modal .description-role-input { font-size: 13px; background: rgba(7,18,34,.8); border-color: rgba(var(--role-rgb), .28); }
+#modal .description-role-input:focus { outline-color: rgb(var(--role-rgb)); }
+#modal .pro-description-textarea { font-size: 14px; line-height: 1.65; padding: 14px; min-height: 100px; background: rgba(4,12,24,.55); }
+#modal .pro-mini-btn { min-height: 34px; padding: 0 11px; font-size: 10px; font-weight: 600; text-transform: none; letter-spacing: 0; }
+#modal .pro-description-item-footer { opacity: .7; }
+#modal .pro-description-block .btn-add-desc { display: none !important; }
+#modal .pro-modal-shell { display: flex !important; flex-direction: column; overflow: hidden; }
+#modal .pro-modal-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; scroll-behavior: smooth; }
+#modal .pro-modal-header, #modal .pro-modal-footer { flex-shrink: 0; }
+#modal .description-add-dock { flex: 0 0 auto; padding: 13px 20px; border-top: 1px solid #26354b; background: #0b1628; box-shadow: 0 -8px 24px rgba(0,0,0,.18); z-index: 40; }
+#modal .description-add-dock[hidden] { display: none !important; }
+#modal .description-dock-heading { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+#modal .description-dock-heading strong { font: 600 12px sans-serif; color: #e2e8f0; }
+#modal .description-dock-count { color: #94a3b8; font: 11px sans-serif; }
+#modal .description-add-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)) auto; gap: 8px; }
+#modal .description-add-action { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 10px 14px; border: 1px solid rgba(var(--role-rgb),.35); border-radius: 10px; color: var(--role-ink); background: rgba(var(--role-rgb),.09); font: 600 12px sans-serif; cursor: pointer; transition: background .15s, border-color .15s; }
+#modal .description-add-action:hover { background: rgba(var(--role-rgb),.2); border-color: rgb(var(--role-rgb)); }
+#modal .description-add-action:focus-visible { outline: 2px solid rgb(var(--role-rgb)); outline-offset: 2px; }
+#modal .description-add-action svg { flex: 0 0 16px; }
+@media(max-width:640px) {
+ #modal .description-add-dock { padding: 11px 12px; }
+ #modal .description-add-actions { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+ #modal .description-add-action { padding: 8px; min-height: 40px; font-size: 11px; }
+ #modal .pro-description-item { padding: 12px; }
+}
+</style>
+<script id="professional-description-colors-and-dock-script">
+(() => {
+ 'use strict';
+ const classify = label => {
+  const value = String(label || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (/marca|c[oó]d|fabricante|referencia/.test(value)) return 'brand';
+  if (/aplica|modelo|veiculo/.test(value)) return 'application';
+  if (/descri|prefix|pre.fix|nome/.test(value)) return 'description';
+  return 'other';
+ };
+ const init = () => {
+  const shell = document.querySelector('#modal .pro-modal-shell');
+  const body = document.querySelector('#modal .pro-modal-body');
+  const rows = document.getElementById('container-descricoes');
+  const block = document.querySelector('#modal .pro-description-block');
+  const list = document.getElementById('listaItens');
+  if (!shell || !body || !rows || !block || typeof window.adicionarCampoDescricao !== 'function') return false;
+  if (shell.querySelector('.description-add-dock')) return true;
+  const dock = document.createElement('section');
+  dock.className = 'description-add-dock';
+  dock.setAttribute('aria-label','Adicionar informações ao cadastro');
+  dock.innerHTML = '<div class="description-dock-heading"><strong>Adicionar informação</strong><span class="description-dock-count" aria-live="polite"></span></div><div class="description-add-actions"></div>';
+  body.after(dock);
+  const choices = [['Descrição pré-fixa','Descrição','description'],['Aplicação / modelo','Aplicação / modelo','application'],['Marca e código da peça','Marca e código','brand'],['','Outro campo','other']];
+  choices.forEach(([label, caption, kind]) => {
+   const button = document.createElement('button');
+   button.type = 'button'; button.className = 'description-add-action';
+   button.dataset.descriptionKind = kind;
+   button.setAttribute('aria-label','Adicionar ' + caption.toLowerCase());
+   button.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span></span>';
+   button.querySelector('span').textContent = caption;
+   button.addEventListener('click', () => { window.adicionarCampoDescricao('', label); refreshEditor(); });
+   dock.querySelector('.description-add-actions').append(button);
+  });
+  const refreshEditor = () => {
+   rows.querySelectorAll('.pro-description-item').forEach(row => {
+    const kind = classify(row.querySelector('.description-role-input')?.value);
+    if (row.dataset.descriptionKind !== kind) row.dataset.descriptionKind = kind;
+   });
+   const count = rows.querySelectorAll('.pro-description-item').length;
+   const text = count + (count === 1 ? ' campo' : ' campos');
+   const counter = dock.querySelector('.description-dock-count');
+   if (counter.textContent !== text) counter.textContent = text;
+   dock.hidden = block.hidden;
+  };
+  const refreshCards = () => list?.querySelectorAll('.desc-container .box-main').forEach(row => {
+   const kind = classify(row.querySelector('.description-role')?.textContent);
+   if (row.dataset.descriptionKind !== kind) row.dataset.descriptionKind = kind;
+  });
+  rows.addEventListener('input', refreshEditor);
+  new MutationObserver(refreshEditor).observe(rows,{childList:true,subtree:true});
+  new MutationObserver(refreshEditor).observe(block,{attributes:true,attributeFilter:['hidden']});
+  if (list) new MutationObserver(refreshCards).observe(list,{childList:true,subtree:true});
+  refreshEditor(); refreshCards();
+  return true;
+ };
+ if (!init()) {
+  const retry = setInterval(() => { if (init()) clearInterval(retry); }, 80);
+  setTimeout(() => clearInterval(retry), 6500);
+ }
+})();
+</script>
+
+
+<style id="strong-full-card-category-colors">
+#listaItens .desc-container .box-main[data-description-kind] .description-value { color: #ffffff !important; }
+#listaItens .box-main[data-description-kind] .description-role { color: var(--role-ink) !important; font-weight: 800; }
+#listaItens .desc-container .box-main[data-description-kind]:hover { filter: brightness(1.13); }
+#modal .pro-description-item[data-description-kind] .description-role-field { color: var(--role-ink); }
+#modal .pro-description-item[data-description-kind] .description-role-input,
+#modal .pro-description-item[data-description-kind] .pro-description-textarea { background: rgba(0,0,0,.18) !important; color: #fff; border-color: rgba(var(--role-rgb),.55); }
+#modal .pro-description-item[data-description-kind] .pro-description-item-footer { color: var(--role-ink); opacity: 1; }
+</style>
+
+
+<style id="clean-workspace-editor">
+#modal { background: rgba(3,7,18,.72); backdrop-filter: blur(5px); }
+#modal .pro-modal-shell { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif !important; background: #111827 !important; border: 1px solid #334155 !important; border-radius: 16px !important; box-shadow: 0 24px 80px rgba(0,0,0,.45) !important; }
+#modal .pro-modal-shell input, #modal .pro-modal-shell textarea, #modal .pro-modal-shell button { font-family: inherit !important; }
+#modal .pro-modal-header { background: #111827 !important; min-height: 62px; padding: 12px 24px !important; border-bottom: 1px solid #293548; }
+#modal #modalTitle { font-family: inherit !important; text-transform: none; font-size: 18px !important; font-weight: 600; letter-spacing: -.02em; }
+#modal .pro-title-mark { display: none; }
+#modal .pro-modal-subtitle { font-size: 11px; color: #94a3b8; font-weight: 400; letter-spacing: 0; text-transform: none; }
+#modal .pro-form-tabs {
+ position: relative !important; top: auto !important; flex: 0 0 auto; z-index: 1;
+ display: flex !important; align-items: stretch; gap: 20px !important;
+ width: 100% !important; margin: 0 !important; padding: 0 24px !important;
+ min-height: 42px; border: 0 !important; border-bottom: 1px solid #293548 !important;
+ background: #111827 !important; border-radius: 0 !important; box-shadow: none !important;
+ backdrop-filter: none !important; overflow-x: auto; overflow-y: hidden; scrollbar-width: none;
+}
+#modal .pro-form-tabs::-webkit-scrollbar { display: none; }
+#modal .pro-form-tab {
+ position: relative; display: flex !important; align-items: center; justify-content: center;
+ flex: 0 0 auto !important; gap: 0 !important; min-height: 42px !important;
+ padding: 0 4px !important; border: 0 !important; border-bottom: 2px solid transparent !important;
+ border-radius: 0 !important; color: #94a3b8; background: transparent !important;
+ box-shadow: none !important; transform: none !important;
+}
+#modal .pro-form-tab::before, #modal .pro-form-tab::after,
+#modal .pro-form-tab-icon, #modal .pro-form-tab-step, #modal .pro-form-tab-status { display: none !important; }
+#modal .pro-form-tab-copy { display: block; }
+#modal .pro-form-tab-title { font-family: inherit; font-size: 12px !important; font-weight: 500 !important; text-transform: none !important; letter-spacing: 0 !important; }
+#modal .pro-form-tab.is-active { color: #a8c7fa !important; border-bottom-color: #a8c7fa !important; }
+#modal .pro-form-tab:hover { color: #e2e8f0; background: #192438 !important; }
+#modal .pro-form-tab:focus-visible { outline: 2px solid #a8c7fa; outline-offset: -4px; }
+#modal .pro-modal-body { padding: 24px !important; scroll-padding-top: 18px !important; background: #111827; }
+#modal .pro-form-layout.pro-tabbed-form { padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; max-width: 940px; margin: 0 auto; }
+#modal .pro-tab-stage-header { display: flex !important; align-items: center; gap: 12px; margin-bottom: 20px; padding: 0 0 14px; border-bottom: 1px solid #293548; background: transparent !important; }
+#modal .pro-tab-stage-icon, #modal .pro-tab-stage-kicker, #modal .pro-tab-stage-status { display: none !important; }
+#modal .pro-tab-stage-title { font: 600 17px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif !important; letter-spacing: -.01em; text-transform: none; color: #e5e7eb; }
+#modal .pro-tab-stage-helper { font-size: 12px !important; font-weight: 400; color: #94a3b8; line-height: 1.5; }
+#modal .pro-section-card { box-shadow: none !important; }
+#modal .pro-section-label { font-family: inherit; font-size: 12px; letter-spacing: 0; text-transform: none; }
+#modal .pro-description-block, #modal .pro-piece-block, #modal .pro-observation-block, #modal .pro-meta-panel { border-radius: 12px !important; }
+#modal .pro-section-description { font-size: 12px !important; font-weight: 400; }
+#modal .pro-description-template, #modal .simple-description-template { box-shadow: none !important; }
+#modal .description-add-dock { padding: 10px 24px; background: #111827; box-shadow: none; }
+#modal .description-dock-heading { margin-bottom: 7px; }
+#modal .description-dock-heading strong { font-size: 11px; font-weight: 500; color: #94a3b8; }
+#modal .description-add-action { min-height: 36px; padding: 8px 12px; border-radius: 8px; font-weight: 500; }
+#modal .pro-tab-navigation { border-top: 1px solid #293548; padding-top: 16px; margin-top: 24px; }
+#modal .pro-tab-nav-btn { font-size: 12px; border-radius: 8px; min-height: 38px; text-transform: none; letter-spacing: 0; box-shadow: none !important; }
+#modal .pro-tab-nav-btn.is-next { background: #a8c7fa !important; color: #102442 !important; border-color: transparent !important; }
+#modal .pro-modal-footer { background: #111827 !important; box-shadow: none !important; padding: 12px 24px !important; }
+#modal .pro-save-btn { background: #a8c7fa !important; color: #102442 !important; box-shadow: none !important; }
+@media(max-width:640px) {
+ #modal .pro-modal-header { padding: 12px 16px !important; }
+ #modal .pro-form-tabs { gap: 14px !important; padding: 0 16px !important; }
+ #modal .pro-form-tab { min-height: 40px !important; }
+ #modal .pro-form-tab-title { font-size: 11px !important; }
+ #modal .pro-modal-body { padding: 18px 14px !important; }
+ #modal .description-add-dock { padding: 9px 14px; }
+}
+</style>
+<script id="clean-workspace-editor-script">
+(() => {
+ const init = () => {
+  const modal = document.getElementById('modal');
+  const shell = modal?.querySelector('.pro-modal-shell');
+  const header = shell?.querySelector('.pro-modal-header');
+  const tabs = shell?.querySelector('.pro-form-tabs');
+  if (!shell || !header || !tabs || !window.__professionalModalNavigation397Ready) return false;
+  // A navegação ocupa sua própria linha e nunca cobre os campos ao rolar.
+  header.after(tabs);
+  const subtitle = shell.querySelector('.pro-modal-subtitle');
+  if (subtitle) subtitle.textContent = 'Organize as informações e revise antes de salvar.';
+  return true;
+ };
+ if (!init()) {
+  const retry = setInterval(() => { if (init()) clearInterval(retry); },80);
+  setTimeout(() => clearInterval(retry),6500);
+ }
+})();
+</script>
+
+
+<style id="inline-description-editing">
+#listaItens .desc-container :is(.box-main,.quick-editable-field) { position: relative; }
+#listaItens :is(.box-main,.quick-editable-field) .quick-description-edit {
+ position: absolute; top: 10px; right: 10px; display: grid; place-items: center;
+ width: 30px; height: 30px; padding: 0; border: 1px solid rgba(255,255,255,.22);
+ border-radius: 8px; color: #e2e8f0; background: rgba(0,0,0,.14); cursor: pointer; z-index: 3;
+}
+#listaItens :is(.box-main,.quick-editable-field) .quick-description-edit:hover { background: rgba(255,255,255,.18); color: #fff; }
+#listaItens :is(.box-main,.quick-editable-field) .quick-description-edit:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+#listaItens :is(.box-main,.quick-editable-field)::after { display: none !important; }
+#listaItens :is(.box-main,.quick-editable-field) .description-content { padding-right: 32px !important; }
+#listaItens :is(.box-main,.quick-editable-field) .description-content[hidden], #listaItens .quick-description-edit[hidden] { display: none !important; }
+#listaItens :is(.box-main,.quick-editable-field).is-quick-editing { cursor: default; transform: none !important; filter: none !important; }
+#listaItens .quick-description-form { grid-column: 2; grid-row: 1; min-width: 0; width: 100%; padding: 0; display: grid; gap: 12px; }
+#listaItens .quick-field { display: grid; gap: 6px; color: var(--role-ink); font: 500 11px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; text-transform: none; letter-spacing: 0; }
+#listaItens .quick-field input, #listaItens .quick-field textarea { box-sizing: border-box; width: 100%; min-width: 0; padding: 10px 12px; border: 1px solid rgba(255,255,255,.3); border-radius: 8px; background: rgba(0,0,0,.2); color: #fff; font: 500 14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; letter-spacing: 0; }
+#listaItens .quick-field textarea { resize: vertical; min-height: 86px; }
+#listaItens .quick-field input:focus, #listaItens .quick-field textarea:focus { outline: 2px solid var(--role-ink); outline-offset: 2px; }
+#listaItens .quick-description-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; }
+#listaItens .quick-description-actions button { padding: 9px 14px; min-height: 36px; border: 1px solid rgba(255,255,255,.3); border-radius: 8px; color: #fff; background: transparent; cursor: pointer; font: 600 12px -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif; }
+#listaItens .quick-description-actions .quick-save { color: #132a20; background: #a7f3d0; border-color: #a7f3d0; }
+#listaItens .quick-description-actions button:disabled { opacity: .6; cursor: wait; }
+#listaItens .quick-description-hint { margin-right: auto; color: var(--role-ink); font: 10px sans-serif; }
+#listaItens .quick-description-error { padding: 10px; border: 1px solid #fda4af; border-radius: 8px; background: #4c1324; color: #ffe4e6; font: 12px/1.5 sans-serif; }
+#listaItens .quick-description-error[hidden] { display: none; }
+#quick-edit-success { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 20px; border: 1px solid #34d399; border-radius: 10px; background: #064e3b; color: #d1fae5; font: 600 13px sans-serif; box-shadow: 0 6px 30px #0005; z-index: 99999; }
+@media(max-width:640px) { #listaItens .quick-description-form { grid-column: 1 / -1; grid-row: 2; } #listaItens .quick-description-hint { width: 100%; } }
+</style>
+
+
+<style id="discrete-copy-and-inline-fields">
+#listaItens .quick-editable-field { position: relative; --role-ink: #cbd5e1; }
+#listaItens .manual2-title.quick-editable-field { padding-right: 44px; min-height: 34px; }
+#listaItens .quick-editable-field .quick-field-content[hidden] { display: none !important; }
+#listaItens .quick-editable-field .quick-description-edit { top: 0; }
+#listaItens .box-sub.quick-editable-field { padding-right: 52px; }
+#listaItens .box-sub.quick-editable-field .quick-description-edit { top: 12px; right: 12px; }
+#listaItens .quick-editable-field .quick-description-form { display: grid; grid-column: 1 / -1; grid-row: auto; font-size: 14px; }
+#listaItens .quick-field[hidden] { display: none !important; }
+#listaItens .info-chip { position: relative; }
+#listaItens .copy-feedback { display: none !important; }
+#listaItens .subtle-copy-notice {
+ position: absolute; top: 8px; right: 48px; z-index: 5; pointer-events: none;
+ display: inline-flex; align-items: center; padding: 5px 9px; border: 1px solid rgba(110,231,183,.45);
+ border-radius: 7px; background: #103d32; color: #bbf7d0; box-shadow: 0 3px 10px #0002;
+ font: 500 11px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+ letter-spacing: 0; text-transform: none; white-space: nowrap; animation: subtleCopyIn .16s ease-out;
+}
+#listaItens .info-chip .subtle-copy-notice { right: 8px; top: 6px; }
+#listaItens .subtle-copy-notice.is-error { background: #55172a; color: #ffe4e6; border-color: #fb7185; }
+@keyframes subtleCopyIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@media(prefers-reduced-motion:reduce) { #listaItens .subtle-copy-notice { animation: none; } }
 </style>
 
 </body>
