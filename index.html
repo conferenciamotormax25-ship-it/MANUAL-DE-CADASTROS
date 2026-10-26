@@ -5734,7 +5734,7 @@
 
                 window.__enterpriseVisualizationReady = true;
                 state.list = list;
-                state.mode = getStoredMode();
+                state.mode = 'grid'; // Abrir sempre no modo cards; lista continua disponível no seletor.
                 buildToolbar();
                 buildDrawer();
                 setupObservers();
@@ -11806,6 +11806,128 @@
 #listaItens .subtle-copy-notice.is-error { background: #55172a; color: #ffe4e6; border-color: #fb7185; }
 @keyframes subtleCopyIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
 @media(prefers-reduced-motion:reduce) { #listaItens .subtle-copy-notice { animation: none; } }
+</style>
+
+
+<style id="green-navigation-actions">
+/* Ações principais com verde forte e contraste para leitura. */
+#modal .pro-tab-nav-btn.is-next,
+#modal .pro-save-btn,
+#modal-config-card button[onclick*="confirmarConfigCard"] {
+    background: #15803d !important;
+    color: #ffffff !important;
+    border-color: #16a34a !important;
+    opacity: 1;
+}
+#modal .pro-tab-nav-btn.is-next:hover,
+#modal .pro-save-btn:hover,
+#modal-config-card button[onclick*="confirmarConfigCard"]:hover {
+    background: #166534 !important;
+    color: #ffffff !important;
+}
+#modal .pro-tab-nav-btn.is-next:focus-visible,
+#modal .pro-save-btn:focus-visible,
+#modal-config-card button[onclick*="confirmarConfigCard"]:focus-visible {
+    outline: 3px solid #86efac !important;
+    outline-offset: 3px;
+}
+#modal .pro-save-btn .pro-shortcut-badge {
+    background: #14532d !important;
+    color: #ffffff !important;
+}
+</style>
+
+<style id="standardized-list-layout">
+#listaItens.enterprise-view-list { gap: 12px !important; }
+#listaItens.enterprise-view-list .manual2-card.enterprise-card {
+ display: grid !important; grid-template-columns: minmax(200px, .7fr) minmax(0, 1.8fr) 132px !important;
+ grid-template-areas: "header descriptions actions" "header observation actions" !important;
+ grid-template-rows: auto !important; align-items: start; gap: 10px 20px !important;
+ padding: 20px !important; border: 1px solid #29374b !important; border-radius: 12px !important;
+ background: #101a2b !important; box-shadow: none !important; resize: none !important;
+ width: 100% !important; min-width: 0 !important; min-height: 0 !important; transform: none !important;
+ font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif !important;
+}
+#listaItens.enterprise-view-list .manual2-card.enterprise-card:hover { border-color: #526986 !important; transform: none !important; }
+#listaItens.enterprise-view-list .manual2-card::before,
+#listaItens.enterprise-view-list .manual2-card::after,
+#listaItens.enterprise-view-list .enterprise-card-header::before { display: none !important; }
+#listaItens.enterprise-view-list .enterprise-card-header {
+ grid-area: header; display: flex !important; flex-direction: column !important; align-items: flex-start !important;
+ height: auto !important; min-height: 0 !important; width: 100%; padding: 0 !important;
+ gap: 12px; border: 0 !important; background: none !important;
+}
+#listaItens.enterprise-view-list .enterprise-card-heading { width: 100%; min-width: 0; }
+#listaItens.enterprise-view-list .enterprise-card-eyebrow {
+ display: block; margin-bottom: 7px; font: 600 10px/1.4 'Segoe UI',Arial,sans-serif !important;
+ letter-spacing: .06em; color: #94a3b8 !important;
+}
+#listaItens.enterprise-view-list .enterprise-card-header .manual2-title {
+ position: relative; padding: 0 38px 0 0 !important; margin: 0 !important;
+ font: 650 16px/1.5 'Segoe UI',Arial,sans-serif !important; letter-spacing: 0 !important;
+ color: #f1f5f9 !important; white-space: normal !important; overflow-wrap: anywhere;
+ text-shadow: none !important;
+}
+#listaItens.enterprise-view-list .manual2-title .quick-description-edit { top: 0; right: 0; }
+#listaItens.enterprise-view-list .enterprise-card-tools { align-self: flex-start !important; gap: 6px; }
+#listaItens.enterprise-view-list .enterprise-card .desc-container.enterprise-organized-descriptions {
+ grid-area: descriptions; min-width: 0; margin: 0 !important; padding: 0 !important;
+ border: 0 !important; background: none !important; box-shadow: none !important; gap: 8px !important;
+}
+#listaItens.enterprise-view-list .enterprise-content-section-header { display: none !important; }
+#listaItens.enterprise-view-list .desc-container .box-main {
+ position: relative; min-width: 0; min-height: 0 !important; padding: 12px !important;
+ grid-template-columns: 28px minmax(0,1fr) !important; gap: 10px !important;
+ background: #17263d !important; border: 1px solid #304663 !important;
+ border-left: 3px solid rgb(var(--role-rgb,96,165,250)) !important;
+ border-radius: 8px !important; box-shadow: none !important; transform: none !important;
+}
+#listaItens.enterprise-view-list .description-content { padding: 0 34px 0 0 !important; gap: 4px !important; }
+#listaItens.enterprise-view-list .description-role { color: #a8b9ce !important; font: 600 10px/1.4 'Segoe UI',Arial,sans-serif !important; letter-spacing: .03em !important; }
+#listaItens.enterprise-view-list .description-value { color: #f1f5f9 !important; font: 600 14px/1.6 'Segoe UI',Arial,sans-serif !important; }
+#listaItens.enterprise-view-list .enterprise-card-description-index { font-family: 'Segoe UI',Arial,sans-serif !important; background: #243750 !important; color: #cbd5e1 !important; border-color: #3b506a !important; }
+#listaItens.enterprise-view-list .enterprise-card .box-sub {
+ grid-area: observation; position: relative; min-width: 0; margin: 0 !important; padding: 12px 48px 12px 14px !important;
+ background: #251e2b !important; border: 1px solid #493348 !important; border-left: 3px solid #d786a3 !important;
+ border-radius: 8px !important; box-shadow: none !important;
+}
+#listaItens.enterprise-view-list .enterprise-observation-label { font: 600 10px/1.4 'Segoe UI',Arial,sans-serif !important; color: #e5a6bd !important; letter-spacing: .03em !important; }
+#listaItens.enterprise-view-list .enterprise-observation-text { display: block; margin-top: 5px; color: #f1dce5 !important; font: 500 13px/1.6 'Segoe UI',Arial,sans-serif !important; overflow-wrap: anywhere; }
+#listaItens.enterprise-view-list .enterprise-card .card-actions {
+ grid-area: actions; display: flex !important; flex-direction: column !important; align-self: start;
+ height: auto !important; width: 100%; padding: 0 !important; margin: 0 !important; gap: 8px !important;
+}
+#listaItens.enterprise-view-list .enterprise-card .action-btn {
+ display: flex; align-items: center; justify-content: center; gap: 6px;
+ width: 100%; height: 36px !important; min-height: 36px !important; padding: 0 10px !important;
+ font: 600 12px/1.2 'Segoe UI',Arial,sans-serif !important; letter-spacing: 0 !important; text-transform: none !important;
+ border-radius: 7px !important; box-shadow: none !important; transform: none !important;
+}
+#listaItens.enterprise-view-list .enterprise-view-main { background: #1d4ed8 !important; color: #fff !important; border: 1px solid #3b6ce0 !important; }
+#listaItens.enterprise-view-list .btn-edit-main { background: #30291c !important; color: #fcd58a !important; border: 1px solid #73592b !important; }
+#listaItens.enterprise-view-list .btn-delete-main { background: #301f2b !important; color: #fda4af !important; border: 1px solid #713344 !important; }
+#listaItens.enterprise-view-list .action-btn:hover { filter: brightness(1.2); }
+#listaItens.enterprise-view-list .action-btn:focus-visible { outline: 2px solid #93c5fd; outline-offset: 3px; }
+#listaItens.enterprise-view-list .enterprise-card:has(> .extra-info-grid) { grid-template-areas: "header extras actions" "header descriptions actions" "header observation actions" !important; }
+#listaItens.enterprise-view-list .enterprise-card:has(> .team-update-note) { grid-template-areas: "header team-note actions" "header descriptions actions" "header observation actions" !important; }
+#listaItens.enterprise-view-list .enterprise-card:has(> .team-update-note):has(> .extra-info-grid) { grid-template-areas: "header team-note actions" "header extras actions" "header descriptions actions" "header observation actions" !important; }
+#listaItens.enterprise-view-list .enterprise-card .extra-info-grid { margin: 0 !important; min-width: 0; }
+#listaItens.enterprise-view-list .enterprise-card .info-chip-value { overflow-wrap: anywhere; font-family: 'Segoe UI',Arial,sans-serif !important; }
+#listaItens.enterprise-view-list .team-update-note { min-width: 0; }
+@media(max-width:900px) {
+ #listaItens.enterprise-view-list .manual2-card.enterprise-card,
+ #listaItens.enterprise-view-list .manual2-card.enterprise-card:has(> .team-update-note),
+ #listaItens.enterprise-view-list .manual2-card.enterprise-card:has(> .extra-info-grid) {
+  grid-template-columns: minmax(0,1fr) !important;
+  grid-template-areas: "header" "team-note" "extras" "descriptions" "observation" "actions" !important;
+  gap: 10px !important; padding: 16px !important;
+ }
+ #listaItens.enterprise-view-list .enterprise-card-header { padding-bottom: 12px !important; border-bottom: 1px solid #29374b !important; }
+ #listaItens.enterprise-view-list .enterprise-card-tools { display: none; }
+ #listaItens.enterprise-view-list .enterprise-card .card-actions { flex-direction: row !important; flex-wrap: wrap; padding-top: 4px !important; }
+ #listaItens.enterprise-view-list .enterprise-card .action-btn { flex: 1 1 88px; width: auto; }
+ #listaItens.enterprise-view-list .enterprise-card-organized .extra-info-grid.enterprise-organized-extras { grid-template-columns: minmax(0,1fr) !important; }
+}
 </style>
 
 </body>
