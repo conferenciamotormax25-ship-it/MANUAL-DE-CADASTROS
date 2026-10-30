@@ -2707,6 +2707,13 @@
                         </div>` : ''}
 
                         <div class="desc-container">
+                            <section class="card-description-order" onclick="event.stopPropagation()" onkeydown="event.stopPropagation()" aria-label="Modelo deste cadastro">
+                                <div class="card-description-order-heading">
+                                    <div><span class="card-description-order-label">Modelo deste cadastro</span><strong>Ordem da descrição</strong></div>
+                                    <button type="button" class="card-description-order-edit" onclick="window.editarModeloDescricaoDoCard(event, '${item.id}')" aria-label="Editar ordem deste cadastro">✎ <span>Editar ordem</span></button>
+                                </div>
+                                <div class="card-description-order-sequence">${normalizeModeloDescricao(item.modeloDescricao).parts.map((part, index) => `${index ? '<span class="card-description-order-plus" aria-hidden="true">+</span>' : ''}<span class="card-description-order-chip">${escaparHtml(part)}</span>`).join('')}</div>
+                            </section>
                             ${descs.map((d, index) => `
                                 <div class="box-main" onclick="window.copiarLinha('${item.id}', ${index}, event)">
                                     <button type="button" class="quick-description-edit" onkeydown="event.stopPropagation()" aria-label="Editar esta informação" title="Editar esta informação" onclick="window.editarDescricaoRapida(event, '${item.id}', ${index})"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 3 5 5-12 12H4v-5z"/><path d="m14 5 5 5"/></svg></button>
@@ -9814,7 +9821,14 @@
             };
 
             const closeEditor = () => {
+                if (savingModel) return;
                 overlay.classList.remove('is-open');
+                if (cardEditorContext) {
+                    activeItemId = cardEditorContext.itemId;
+                    model = cardEditorContext.model;
+                    cardEditorContext = null;
+                    renderCard();
+                }
                 if (lastFocused && typeof lastFocused.focus === 'function') {
                     lastFocused.focus({ preventScroll: true });
                 }
@@ -10908,6 +10922,7 @@
             let lastFocused = null;
             let statusTimer = 0;
             let savingModel = false;
+            let cardEditorContext = null;
 
             const card = document.createElement('section');
             card.className = 'manual-order-card';
@@ -11133,9 +11148,11 @@
                     }
                 }
 
+                const savedFromCard = !!cardEditorContext;
                 model = nextModel;
                 renderCard();
                 closeEditor();
+                if (savedFromCard && typeof window.renderizar === 'function') window.renderizar();
                 showStatus(activeItemId
                     ? 'Ordem salva somente neste cadastro.'
                     : 'Ordem definida para este novo cadastro.');
@@ -11212,6 +11229,15 @@
                 };
             }
 
+            window.editarModeloDescricaoDoCard = (event, itemId) => {
+                event?.preventDefault();
+                event?.stopPropagation();
+                if (savingModel || overlay.classList.contains('is-open')) return;
+                cardEditorContext = { itemId: activeItemId, model };
+                activeItemId = itemId;
+                model = loadModel(itemId);
+                openEditor(event?.currentTarget);
+            };
             window.obterModeloDescricaoAtual = () => ({ parts: [...model.parts] });
             renderCard();
             window.editarModeloDescricao = () => openEditor(card.querySelector('[data-order-edit]'));
@@ -11955,6 +11981,25 @@
  #listaItens.enterprise-view-list .enterprise-card .action-btn { flex: 1 1 88px; width: auto; }
  #listaItens.enterprise-view-list .enterprise-card-organized .extra-info-grid.enterprise-organized-extras { grid-template-columns: minmax(0,1fr) !important; }
 }
+</style>
+
+
+<style id="card-description-order-style">
+#listaItens .card-description-order {
+    display: grid; gap: 12px; min-width: 0; padding: 16px; margin: 0 0 14px;
+    border: 1px solid rgba(45,212,191,.3); border-radius: 12px;
+    background: linear-gradient(120deg,rgba(13,148,136,.15),rgba(15,23,42,.85));
+}
+#listaItens .card-description-order-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+#listaItens .card-description-order-label { display: block; margin-bottom: 4px; color: #5eead4; font: 700 10px/1.4 'Segoe UI',Arial,sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+#listaItens .card-description-order-heading strong { display: block; color: #f0fdfa; font: 600 13px/1.4 'Segoe UI',Arial,sans-serif; }
+#listaItens .card-description-order-edit { display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0; min-height: 36px; padding: 7px 12px; border: 1px solid rgba(45,212,191,.35); border-radius: 8px; background: rgba(13,148,136,.14); color: #ccfbf1; font: 600 12px/1.4 'Segoe UI',Arial,sans-serif; cursor: pointer; }
+#listaItens .card-description-order-edit:hover { background: rgba(13,148,136,.3); border-color: #5eead4; }
+#listaItens .card-description-order-edit:focus-visible { outline: 2px solid #5eead4; outline-offset: 3px; }
+#listaItens .card-description-order-sequence { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-width: 0; }
+#listaItens .card-description-order-chip { max-width: 100%; padding: 6px 9px; border: 1px solid rgba(94,234,212,.16); border-radius: 7px; background: rgba(2,6,23,.55); color: #e2e8f0; font: 700 11px/1.5 'Segoe UI',Arial,sans-serif; text-transform: uppercase; overflow-wrap: anywhere; }
+#listaItens .card-description-order-plus { color: #2dd4bf; font: 800 16px/1 sans-serif; }
+@media(max-width:640px) { #listaItens .card-description-order { padding: 12px; } }
 </style>
 
 </body>
